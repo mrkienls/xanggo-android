@@ -1,0 +1,40 @@
+name: Fuel Price Auto Crawler
+
+on:
+  schedule:
+    # Chạy lúc 15:05, 15:20, 15:40 chiều Thứ Năm hàng tuần (Giờ UTC = 08:05, 08:20, 08:40)
+    - cron: '5,20,40 8 * * 4'
+    # Chạy sáng Thứ Hai lúc 08:00 (Giờ UTC = 01:00) để cập nhật giá xăng thế giới
+    - cron: '0 1 * * 1'
+  workflow_dispatch: # Cho phép người dùng bấm nút chạy thủ công trên GitHub
+
+jobs:
+  crawl-and-sync:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup Python
+        uses: setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Install dependencies
+        run: |
+          pip install -r backend/requirements.txt
+
+      - name: Run Crawler
+        env:
+          FIREBASE_SERVICE_ACCOUNT: ${{ secrets.FIREBASE_SERVICE_ACCOUNT }}
+          TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
+          TELEGRAM_CHAT_ID: ${{ secrets.TELEGRAM_CHAT_ID }}
+        run: |
+          python backend/crawler.py
+
+      - name: Commit and push updated static JSON if changed
+        run: |
+          git config --global user.name 'github-actions[bot]'
+          git config --global user.email 'github-actions[bot]@users.noreply.github.com'
+          git add backend/output/*.json
+          git diff --quiet && git diff --staged --quiet || (git commit -m "chore: auto-update fuel prices data [skip ci]" && git push)

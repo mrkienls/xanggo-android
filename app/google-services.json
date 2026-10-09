@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "1023220386353",
+    "project_id": "test24-466114",
+    "storage_bucket": "test24-466114.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:1023220386353:android:03ac04109598619af66310",
+        "android_client_info": {
+          "package_name": "com.example.xanggo"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyDGEu642NHx2FDrx0jtLrWNCuYZKTVNyTI"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

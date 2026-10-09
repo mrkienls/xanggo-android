@@ -1,0 +1,47 @@
+{
+  "updated_at": "2026-10-09T09:18:29.088018",
+  "announcement_title": "Bảng giá xăng dầu ngày 09/10/2026",
+  "source": "Kỳ điều hành Liên Bộ Công Thương - Tài chính (Petrolimex)",
+  "items": [
+    {
+      "id": "e10_ron_95_iii",
+      "name": "Xăng E10 RON 95-III",
+      "zone_1": 28250,
+      "zone_2": 28820,
+      "delta": 1070,
+      "unit": "VND/lít",
+      "badge_color": "#F97316",
+      "is_featured": true
+    },
+    {
+      "id": "e5_ron_92_ii",
+      "name": "Xăng E5 RON 92-II",
+      "zone_1": 27700,
+      "zone_2": 28250,
+      "delta": 1140,
+      "unit": "VND/lít",
+      "badge_color": "#16A34A",
+      "is_featured": false
+    },
+    {
+      "id": "do_0,05s_ii",
+      "name": "Dầu DO 0,05S-II",
+      "zone_1": 29120,
+      "zone_2": 29700,
+      "delta": -590,
+      "unit": "VND/lít",
+      "badge_color": "#475569",
+      "is_featured": false
+    },
+    {
+      "id": "do_0,001s_v",
+      "name": "Dầu DO 0,001S-V",
+      "zone_1": 30520,
+      "zone_2": 31130,
+      "delta": -590,
+      "unit": "VND/lít",
+      "badge_color": "#475569",
+      "is_featured": false
+    }
+  ]
+}
