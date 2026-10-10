@@ -138,15 +138,8 @@ class DefaultFuelRepository : FuelRepository {
                 FuelItem("do_005s_ii", "Dầu DO 0.05S-II", 29120, 29700, -590, badgeColorHex = "#64748B", isFeatured = false),
                 FuelItem("do_0001s_v", "Dầu DO 0.001S-V", 30520, 31130, -590, badgeColorHex = "#334155", isFeatured = false)
             ),
+            // Chỉ giữ kỳ hiện tại; lịch sử thật do crawler tích luỹ dần theo từng kỳ điều hành
             history = listOf(
-                PriceHistoryPoint("13/08", "13/08/2026", 27140, 26550, 29170, 180),
-                PriceHistoryPoint("20/08", "20/08/2026", 26920, 26340, 28990, -220),
-                PriceHistoryPoint("27/08", "27/08/2026", 27330, 26720, 29340, 410),
-                PriceHistoryPoint("03/09", "03/09/2026", 26980, 26410, 29050, -350),
-                PriceHistoryPoint("10/09", "10/09/2026", 27220, 26630, 29230, 240),
-                PriceHistoryPoint("17/09", "17/09/2026", 27060, 26450, 29440, -160),
-                PriceHistoryPoint("24/09", "24/09/2026", 27490, 26840, 29290, 430),
-                PriceHistoryPoint("01/10", "01/10/2026", 27180, 26560, 29710, -310),
                 PriceHistoryPoint("08/10", "08/10/2026", 28250, 27700, 29120, 1070)
             )
         )

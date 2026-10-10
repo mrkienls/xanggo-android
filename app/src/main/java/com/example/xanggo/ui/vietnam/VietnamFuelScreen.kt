@@ -246,10 +246,39 @@ fun VietnamFuelScreen(
             }
         }
 
-        // 3. Biểu đồ biến động giá xăng dầu lịch sử
-        if (data.history.isNotEmpty()) {
+        // 3. Biểu đồ biến động giá xăng dầu lịch sử (cần tối thiểu 2 kỳ thật)
+        if (data.history.size >= 2) {
             item {
                 PriceHistoryChartCard(history = data.history)
+            }
+        } else {
+            item {
+                Surface(
+                    color = DarkSurface,
+                    shape = RoundedCornerShape(14.dp),
+                    modifier = Modifier.fillMaxWidth()
+                ) {
+                    Row(
+                        modifier = Modifier.padding(14.dp),
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Text(text = "📊", fontSize = 18.sp)
+                        Spacer(modifier = Modifier.width(10.dp))
+                        Column {
+                            Text(
+                                text = "Lịch sử giá",
+                                color = TextPrimaryDark,
+                                fontSize = 14.sp,
+                                fontWeight = FontWeight.Bold
+                            )
+                            Text(
+                                text = "Biểu đồ sẽ hiện từ kỳ điều hành tiếp theo",
+                                color = TextSecondaryDark,
+                                fontSize = 11.sp
+                            )
+                        }
+                    }
+                }
             }
         }
 
