@@ -10,6 +10,7 @@ import logging
 from datetime import datetime
 import requests
 from bs4 import BeautifulSoup
+import re
 
 # Hỗ trợ UTF-8 cho Windows console
 if sys.platform.startswith("win"):
@@ -167,8 +168,183 @@ def get_fallback_vietnam_prices():
 # -------------------------------------------------------------
 # 2. THU THẬP TỶ GIÁ & DỮ LIỆU SO SÁNH THẾ GIỚI
 # -------------------------------------------------------------
+COUNTRY_META = {
+    "Libya": ("Libya", "🇱🇾", 18.0),
+    "Iran": ("Iran", "🇮🇷", 15.0),
+    "Venezuela": ("Venezuela", "🇻🇪", 6.0),
+    "Angola": ("Angola", "🇦🇴", 8.0),
+    "Kuwait": ("Kuwait", "🇰🇼", 95.0),
+    "Algeria": ("Algeria", "🇩🇿", 12.0),
+    "Turkmenistan": ("Turkmenistan", "🇹🇲", 22.0),
+    "Egypt": ("Ai Cập", "🇪🇬", 10.0),
+    "Qatar": ("Qatar", "🇶🇦", 180.0),
+    "Bolivia": ("Bolivia", "🇧🇴", 11.0),
+    "Oman": ("Oman", "🇴🇲", 55.0),
+    "Saudi Arabia": ("Ả Rập Xê Út", "🇸🇦", 75.0),
+    "Iraq": ("Iraq", "🇮🇶", 16.0),
+    "Bahrain": ("Bahrain", "🇧🇭", 70.0),
+    "Azerbaijan": ("Azerbaijan", "🇦🇿", 18.0),
+    "Sudan": ("Sudan", "🇸🇩", 3.0),
+    "Kazakhstan": ("Kazakhstan", "🇰🇿", 30.0),
+    "Tunisia": ("Tunisia", "🇹🇳", 11.0),
+    "Ecuador": ("Ecuador", "🇪🇨", 18.0),
+    "Niger": ("Niger", "🇳🇪", 2.0),
+    "Russia": ("Nga", "🇷🇺", 38.0),
+    "Belarus": ("Belarus", "🇧🇾", 20.0),
+    "Nigeria": ("Nigeria", "🇳🇬", 5.0),
+    "Gabon": ("Gabon", "🇬🇦", 22.0),
+    "Taiwan": ("Đài Loan", "🇹🇼", 90.0),
+    "Ethiopia": ("Ethiopia", "🇪🇹", 3.0),
+    "Maldives": ("Maldives", "🇲🇻", 35.0),
+    "Indonesia": ("Indonesia", "🇮🇩", 13.5),
+    "Vietnam": ("Việt Nam", "🇻🇳", 12.8),
+    "Japan": ("Nhật Bản", "🇯🇵", 95.0),
+    "Bhutan": ("Bhutan", "🇧🇹", 10.0),
+    "Malaysia": ("Malaysia", "🇲🇾", 33.0),
+    "India": ("Ấn Độ", "🇮🇳", 7.5),
+    "DR Congo": ("CHDC Congo", "🇨🇩", 2.0),
+    "Trinidad & Tobago": ("Trinidad & Tobago", "🇹🇹", 45.0),
+    "UAE": ("UAE (Các Tiểu Vương Quốc)", "🇦🇪", 140.0),
+    "Madagascar": ("Madagascar", "🇲🇬", 1.8),
+    "USA": ("Hoa Kỳ (Mỹ)", "🇺🇸", 215.0),
+    "Guyana": ("Guyana", "🇬🇾", 48.0),
+    "Benin": ("Benin", "🇧🇯", 4.0),
+    "Kyrgyzstan": ("Kyrgyzstan", "🇰🇬", 5.0),
+    "Brazil": ("Brazil", "🇧🇷", 26.0),
+    "Liberia": ("Liberia", "🇱🇷", 2.5),
+    "Paraguay": ("Paraguay", "🇵🇾", 17.0),
+    "Suriname": ("Suriname", "🇸🇷", 16.0),
+    "Guatemala": ("Guatemala", "🇬🇹", 14.0),
+    "Nepal": ("Nepal", "🇳🇵", 4.0),
+    "Haiti": ("Haiti", "🇭🇹", 4.5),
+    "Colombia": ("Colombia", "🇨🇴", 19.0),
+    "Puerto Rico": ("Puerto Rico", "🇵🇷", 95.0),
+    "Botswana": ("Botswana", "🇧🇼", 21.0),
+    "Burundi": ("Burundi", "🇧🇮", 1.0),
+    "Nicaragua": ("Nicaragua", "🇳🇮", 6.5),
+    "Bangladesh": ("Bangladesh", "🇧🇩", 7.0),
+    "El Salvador": ("El Salvador", "🇸🇻", 14.0),
+    "Afghanistan": ("Afghanistan", "🇦🇫", 1.5),
+    "Guinea": ("Guinea", "🇬🇳", 3.5),
+    "China": ("Trung Quốc", "🇨🇳", 35.0),
+    "Grenada": ("Grenada", "🇬🇩", 28.0),
+    "Togo": ("Togo", "🇹🇬", 3.0),
+    "Fiji": ("Fiji", "🇫🇯", 15.0),
+    "Saint Lucia": ("Saint Lucia", "🇱🇨", 32.0),
+    "South Korea": ("Hàn Quốc", "🇰🇷", 92.0),
+    "Pakistan": ("Pakistan", "🇵🇰", 4.5),
+    "Argentina": ("Argentina", "🇦🇷", 34.0),
+    "Panama": ("Panama", "🇵🇦", 46.0),
+    "Lebanon": ("Lebanon", "🇱🇧", 11.0),
+    "Sri Lanka": ("Sri Lanka", "🇱🇰", 10.5),
+    "Cameroon": ("Cameroon", "🇨🇲", 4.8),
+    "Tanzania": ("Tanzania", "🇹🇿", 3.2),
+    "Canada": ("Canada", "🇨🇦", 150.0),
+    "Burkina Faso": ("Burkina Faso", "🇧🇫", 2.5),
+    "Mozambique": ("Mozambique", "🇲🇿", 1.6),
+    "Thailand": ("Thái Lan", "🇹🇭", 20.5),
+    "Mauritius": ("Mauritius", "🇲🇺", 30.0),
+    "Mali": ("Mali", "🇲🇱", 2.6),
+    "Philippines": ("Philippines", "🇵🇭", 11.2),
+    "Burma": ("Myanmar", "🇲🇲", 3.5),
+    "Malta": ("Malta", "🇲🇹", 90.0),
+    "Honduras": ("Honduras", "🇭🇳", 8.5),
+    "Morocco": ("Ma-rốc", "🇲🇦", 10.0),
+    "Chile": ("Chile", "🇨🇱", 42.0),
+    "Curacao": ("Curacao", "🇨🇼", 50.0),
+    "Cambodia": ("Campuchia", "🇰🇭", 5.8),
+    "Dom. Rep.": ("Cộng hòa Dominica", "🇩🇴", 28.0),
+    "Ivory Coast": ("Bờ Biển Ngà", "🇨🇮", 7.0),
+    "Uzbekistan": ("Uzbekistan", "🇺🇿", 7.0),
+    "Swaziland": ("Eswatini", "🇸🇿", 11.0),
+    "Mexico": ("Mexico", "🇲🇽", 32.0),
+    "Dominica": ("Dominica", "🇩🇲", 23.0),
+    "Zambia": ("Zambia", "🇿🇲", 4.0),
+    "Namibia": ("Namibia", "🇳🇦", 13.0),
+    "Australia": ("Úc", "🇦🇺", 175.0),
+    "Ghana": ("Ghana", "🇬🇭", 6.5),
+    "Aruba": ("Aruba", "🇦🇼", 80.0),
+    "Jamaica": ("Jamaica", "🇯🇲", 17.0),
+    "Kenya": ("Kenya", "🇰🇪", 6.0),
+    "Georgia": ("Georgia", "🇬🇪", 19.0),
+    "Cayman Islands": ("Quần đảo Cayman", "🇰🇾", 230.0),
+    "Syria": ("Syria", "🇸🇾", 3.0),
+    "Costa Rica": ("Costa Rica", "🇨🇷", 36.0),
+    "Peru": ("Peru", "🇵🇪", 20.0),
+    "Senegal": ("Senegal", "🇸🇳", 4.5),
+    "Uganda": ("Uganda", "🇺🇬", 2.8),
+    "Turkey": ("Thổ Nhĩ Kỳ", "🇹🇷", 28.0),
+    "Lesotho": ("Lesotho", "🇱🇸", 3.2),
+    "Armenia": ("Armenia", "🇦🇲", 18.0),
+    "Seychelles": ("Seychelles", "🇸🇨", 45.0),
+    "Bahamas": ("Bahamas", "🇧🇸", 85.0),
+    "Andorra": ("Andorra", "🇦🇩", 120.0),
+    "N. Maced.": ("Bắc Macedonia", "🇲🇰", 19.0),
+    "South Africa": ("Nam Phi", "🇿🇦", 18.0),
+    "C. Afr. Rep.": ("Trung Phi", "🇨🇫", 1.5),
+    "Bulgaria": ("Bulgaria", "🇧🇬", 38.0),
+    "Sweden": ("Thụy Điển", "🇸🇪", 155.0),
+    "Moldova": ("Moldova", "🇲🇩", 16.0),
+    "Jordan": ("Jordan", "🇯🇴", 13.0),
+    "Belize": ("Belize", "🇧🇿", 19.0),
+    "Laos": ("Lào", "🇱🇦", 5.2),
+    "Mongolia": ("Mông Cổ", "🇲🇳", 14.0),
+    "Hungary": ("Hungary", "🇭🇺", 52.0),
+    "Bosnia & Herz.": ("Bosnia & Herzegovina", "🇧🇦", 21.0),
+    "New Zealand": ("New Zealand", "🇳🇿", 130.0),
+    "Slovenia": ("Slovenia", "🇸🇮", 80.0),
+    "Cyprus": ("Síp", "🇨🇾", 85.0),
+    "Serbia": ("Serbia", "🇷🇸", 28.0),
+    "Rwanda": ("Rwanda", "🇷🇼", 3.0),
+    "Montenegro": ("Montenegro", "🇲🇪", 27.0),
+    "Cuba": ("Cuba", "🇨🇺", 8.0),
+    "Cape Verde": ("Cape Verde", "🇨🇻", 11.0),
+    "Spain": ("Tây Ban Nha", "🇪🇸", 85.0),
+    "Ukraine": ("Ukraine", "🇺🇦", 13.0),
+    "Sierra Leone": ("Sierra Leone", "🇸🇱", 1.8),
+    "Croatia": ("Croatia", "🇭🇷", 55.0),
+    "Lithuania": ("Lithuania", "🇱🇹", 68.0),
+    "Zimbabwe": ("Zimbabwe", "🇿🇼", 4.0),
+    "Luxembourg": ("Luxembourg", "🇱🇺", 350.0),
+    "Austria": ("Áo", "🇦🇹", 145.0),
+    "Slovakia": ("Slovakia", "🇸🇰", 58.0),
+    "Poland": ("Ba Lan", "🇵🇱", 55.0),
+    "San Marino": ("San Marino", "🇸🇲", 130.0),
+    "Czech Republic": ("Cộng hòa Séc", "🇨🇿", 75.0),
+    "Barbados": ("Barbados", "🇧🇧", 50.0),
+    "Romania": ("Romania", "🇷🇴", 45.0),
+    "Wallis and Futuna": ("Wallis & Futuna", "🇼🇫", 35.0),
+    "Latvia": ("Latvia", "🇱🇻", 60.0),
+    "Estonia": ("Estonia", "🇪🇪", 75.0),
+    "Ireland": ("Ireland", "🇮🇪", 280.0),
+    "Belgium": ("Bỉ", "🇧🇪", 140.0),
+    "Iceland": ("Iceland", "🇮🇸", 210.0),
+    "Uruguay": ("Uruguay", "🇺🇾", 55.0),
+    "Italy": ("Ý", "🇮🇹", 100.0),
+    "UK": ("Vương quốc Anh", "🇬🇧", 135.0),
+    "Portugal": ("Bồ Đào Nha", "🇵🇹", 70.0),
+    "Albania": ("Albania", "🇦🇱", 19.0),
+    "Germany": ("Đức", "🇩🇪", 140.0),
+    "France": ("Pháp", "🇫🇷", 125.0),
+    "Monaco": ("Monaco", "🇲🇨", 500.0),
+    "Singapore": ("Singapore", "🇸🇬", 230.0),
+    "Greece": ("Hy Lạp", "🇬🇷", 60.0),
+    "Mayotte": ("Mayotte", "🇾🇹", 35.0),
+    "Liechtenstein": ("Liechtenstein", "🇱🇮", 400.0),
+    "Switzerland": ("Thụy Sĩ", "🇨🇭", 260.0),
+    "Finland": ("Phần Lan", "🇫🇮", 145.0),
+    "Israel": ("Israel", "🇮🇱", 140.0),
+    "Netherlands": ("Hà Lan", "🇳🇱", 160.0),
+    "Denmark": ("Đan Mạch", "🇩🇰", 190.0),
+    "Norway": ("Na Uy", "🇳🇴", 240.0),
+    "Malawi": ("Malawi", "🇲🇼", 1.8),
+    "Hong Kong": ("Hong Kong", "🇭🇰", 145.0)
+}
+
+ASEAN_SET = {"Vietnam", "Singapore", "Malaysia", "Thailand", "Indonesia", "Philippines", "Cambodia", "Laos", "Burma", "Brunei"}
+
 def fetch_global_fuel_data(vn_price_vnd=28250):
-    logger.info("Đang cập nhật tỷ giá ngoại tệ và dữ liệu xăng quốc tế...")
+    logger.info("Đang cập nhật tỷ giá ngoại tệ và dữ liệu xăng 170 quốc gia toàn cầu...")
     
     # 1. Lấy tỷ giá USD -> VND từ API mở miễn phí
     usd_to_vnd = 25800.0
@@ -184,48 +360,81 @@ def fetch_global_fuel_data(vn_price_vnd=28250):
     # Giá xăng tính theo USD của Việt Nam
     vn_price_usd = round(vn_price_vnd / usd_to_vnd, 2)
 
-    # Danh sách các quốc gia trọng điểm (ASEAN + Toàn cầu)
-    raw_countries = [
-        {"code": "VE", "name": "Venezuela", "flag": "🇻🇪", "region": "Global", "price_usd": 0.035, "daily_income": 6.0, "note": "Trợ cấp dầu mỏ gần như 0đ"},
-        {"code": "MY", "name": "Malaysia", "flag": "🇲🇾", "region": "ASEAN", "price_usd": 0.44, "daily_income": 33.0, "note": "Chính phủ trợ giá xăng"},
-        {"code": "ID", "name": "Indonesia", "flag": "🇮🇩", "region": "ASEAN", "price_usd": 0.79, "daily_income": 13.5, "note": ""},
-        {"code": "VN", "name": "Việt Nam", "flag": "🇻🇳", "region": "ASEAN", "price_usd": vn_price_usd, "daily_income": 12.8, "is_current": True, "note": "Kỳ điều hành ngày 08/10"},
-        {"code": "US", "name": "Hoa Kỳ", "flag": "🇺🇸", "region": "Global", "price_usd": 0.95, "daily_income": 215.0, "note": ""},
-        {"code": "PH", "name": "Philippines", "flag": "🇵🇭", "region": "ASEAN", "price_usd": 1.10, "daily_income": 11.2, "note": ""},
-        {"code": "TH", "name": "Thái Lan", "flag": "🇹🇭", "region": "ASEAN", "price_usd": 1.15, "daily_income": 20.5, "note": ""},
-        {"code": "CN", "name": "Trung Quốc", "flag": "🇨🇳", "region": "Global", "price_usd": 1.18, "daily_income": 35.0, "note": ""},
-        {"code": "KH", "name": "Campuchia", "flag": "🇰🇭", "region": "ASEAN", "price_usd": 1.22, "daily_income": 5.8, "note": ""},
-        {"code": "JP", "name": "Nhật Bản", "flag": "🇯🇵", "region": "Global", "price_usd": 1.25, "daily_income": 95.0, "note": ""},
-        {"code": "LA", "name": "Lào", "flag": "🇱🇦", "region": "ASEAN", "price_usd": 1.35, "daily_income": 5.2, "note": "Nhập khẩu 100%"},
-        {"code": "DE", "name": "Đức", "flag": "🇩🇪", "region": "Global", "price_usd": 1.95, "daily_income": 140.0, "note": ""},
-        {"code": "SG", "name": "Singapore", "flag": "🇸🇬", "region": "ASEAN", "price_usd": 2.15, "daily_income": 230.0, "note": "Thuế bảo vệ môi trường cao"},
-        {"code": "HK", "name": "Hong Kong", "flag": "🇭🇰", "region": "Global", "price_usd": 3.25, "daily_income": 145.0, "note": "Giá xăng cao nhất thế giới"}
-    ]
+    # 2. Cào dữ liệu trực tiếp 170 quốc gia từ GlobalPetrolPrices
+    scraped_countries = []
+    try:
+        headers = {'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36'}
+        r = requests.get('https://www.globalpetrolprices.com/gasoline_prices/', headers=headers, timeout=15)
+        if r.status_code == 200:
+            soup = BeautifulSoup(r.text, 'html.parser')
+            g = soup.find('div', id='graphic')
+            price_divs = []
+            if g:
+                for d in g.find_all('div'):
+                    txt = d.get_text(strip=True)
+                    if re.match(r'^\d+\.\d{3}$', txt):
+                        price_divs.append(float(txt))
 
-    countries = []
-    for item in raw_countries:
-        price_vnd = int(round(item["price_usd"] * usd_to_vnd))
-        affordability = round((item["price_usd"] / item["daily_income"]) * 100, 2)
-        countries.append({
-            "code": item["code"],
-            "name": item["name"],
-            "flag": item["flag"],
-            "region": item["region"],
-            "price_usd": item["price_usd"],
-            "price_vnd": price_vnd,
-            "daily_income_usd": item["daily_income"],
-            "affordability_percent": affordability,
-            "is_current": item.get("is_current", False),
-            "note": item.get("note", "")
-        })
+            step_prices = price_divs[::2]
+            titles = [el.get_text(strip=True).replace('*', '').strip() for el in soup.find_all('div', class_='outsideTitleElement')]
 
-    sorted_countries = sorted(countries, key=lambda x: x["price_usd"])
+            if len(titles) > 50 and len(step_prices) == len(titles):
+                logger.info(f"Cào thành công {len(titles)} quốc gia từ GlobalPetrolPrices!")
+                for title, price in zip(titles, step_prices):
+                    meta = COUNTRY_META.get(title, (title, "🌐", 25.0))
+                    vn_name, flag, daily_income = meta
+                    is_asean = title in ASEAN_SET
+                    is_vn = (title == "Vietnam")
+
+                    actual_usd = vn_price_usd if is_vn else price
+                    actual_vnd = int(round(actual_usd * usd_to_vnd))
+                    affordability = round((actual_usd / daily_income) * 100, 2)
+
+                    note = "Kỳ điều hành hôm nay" if is_vn else ("Chính phủ trợ giá" if price < 0.5 else ("Thuế cao" if price > 2.2 else ""))
+                    scraped_countries.append({
+                        "code": title[:3].upper(),
+                        "name": vn_name,
+                        "flag": flag,
+                        "region": "ASEAN" if is_asean else "Global",
+                        "price_usd": actual_usd,
+                        "price_vnd": actual_vnd,
+                        "daily_income_usd": daily_income,
+                        "affordability_percent": affordability,
+                        "is_current": is_vn,
+                        "note": note
+                    })
+    except Exception as e:
+        logger.warning(f"Lỗi khi cào dữ liệu thế giới: {e}. Sẽ dùng bộ dữ liệu tiêu chuẩn.")
+
+    # Nếu cào thất bại thì dùng bộ dữ liệu chuẩn
+    if not scraped_countries:
+        for title, meta in COUNTRY_META.items():
+            vn_name, flag, daily_income = meta
+            is_asean = title in ASEAN_SET
+            is_vn = (title == "Vietnam")
+            default_usd = vn_price_usd if is_vn else 1.25
+            default_vnd = int(round(default_usd * usd_to_vnd))
+            affordability = round((default_usd / daily_income) * 100, 2)
+            scraped_countries.append({
+                "code": title[:3].upper(),
+                "name": vn_name,
+                "flag": flag,
+                "region": "ASEAN" if is_asean else "Global",
+                "price_usd": default_usd,
+                "price_vnd": default_vnd,
+                "daily_income_usd": daily_income,
+                "affordability_percent": affordability,
+                "is_current": is_vn,
+                "note": "Kỳ điều hành hôm nay" if is_vn else ""
+            })
+
+    sorted_countries = sorted(scraped_countries, key=lambda x: x["price_usd"])
 
     return {
         "updated_at": datetime.now().isoformat(),
         "usd_to_vnd_rate": usd_to_vnd,
         "total_countries": len(sorted_countries),
-        "vn_rank": next((i + 1 for i, c in enumerate(sorted_countries) if c.get("is_current")), 4),
+        "vn_rank": next((i + 1 for i, c in enumerate(sorted_countries) if c.get("is_current")), 30),
         "countries": sorted_countries
     }
 

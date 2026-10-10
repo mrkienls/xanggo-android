@@ -127,8 +127,8 @@ class DefaultFuelRepository : FuelRepository {
         return WorldFuelSummary(
             updatedAt = "Tuần này",
             usdToVndRate = 25863.0,
-            totalCountries = 14,
-            vnRank = 5,
+            totalCountries = 170,
+            vnRank = 30,
             countries = listOf(
                 CountryFuel("VE", "Venezuela", "🇻🇪", "Global", 0.035, 905, 6.0, 0.58, note = "Trợ cấp 0đ"),
                 CountryFuel("MY", "Malaysia", "🇲🇾", "ASEAN", 0.44, 11382, 33.0, 1.33, note = "Trợ giá xăng"),

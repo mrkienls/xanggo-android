@@ -5,6 +5,7 @@ import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.itemsIndexed
+import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
@@ -28,13 +29,27 @@ fun WorldCompareScreen(
     var selectedTab by remember { mutableIntStateOf(0) } // 0: ASEAN, 1: Top Rẻ, 2: Toàn Cầu
     var showInfoDialog by remember { mutableStateOf(false) } // Hộp thoại giải thích Sức mua
     val currencyFormat = remember { NumberFormat.getNumberInstance(Locale.GERMANY) }
+    val listState = rememberLazyListState()
 
-    val filteredCountries = remember(selectedTab, data.countries) {
-        when (selectedTab) {
-            0 -> data.countries.filter { it.region == "ASEAN" }.sortedBy { it.priceUsd }
-            1 -> data.countries.sortedBy { it.priceUsd }.take(7)
-            else -> data.countries.sortedBy { it.priceUsd }
-        }
+    val aseanCountries = remember(data.countries) {
+        data.countries.filter { it.region == "ASEAN" }.sortedBy { it.priceUsd }
+    }
+    val topCheapCountries = remember(data.countries) {
+        data.countries.sortedBy { it.priceUsd }.take(15)
+    }
+    val allCountries = remember(data.countries) {
+        data.countries.sortedBy { it.priceUsd }
+    }
+
+    val filteredCountries = when (selectedTab) {
+        0 -> aseanCountries
+        1 -> topCheapCountries
+        else -> allCountries
+    }
+
+    // Tự động cuộn lên đầu danh sách khi người dùng đổi Tab
+    LaunchedEffect(selectedTab) {
+        listState.scrollToItem(0)
     }
 
     val maxPriceUsd = remember(filteredCountries) {
@@ -46,111 +61,144 @@ fun WorldCompareScreen(
         formatDisplayDate(data.updatedAt)
     }
 
-    LazyColumn(
+    Column(
         modifier = Modifier
             .fillMaxSize()
             .background(DarkBackground)
-            .padding(horizontal = 16.dp),
-        verticalArrangement = Arrangement.spacedBy(14.dp)
     ) {
-        // 1. Header
-        item {
-            Spacer(modifier = Modifier.height(8.dp))
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.SpaceBetween,
-                verticalAlignment = Alignment.CenterVertically
+        // -----------------------------------------------------------
+        // 1. THANH ĐIỀU HƯỚNG CỐ ĐỊNH TRÊN CÙNG (Sticky Nav)
+        // Khi người dùng cuộn danh sách, phần này vẫn luôn hiển thị rõ ràng!
+        // -----------------------------------------------------------
+        Surface(
+            color = DarkBackground,
+            modifier = Modifier.fillMaxWidth()
+        ) {
+            Column(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(start = 16.dp, end = 16.dp, top = 8.dp, bottom = 10.dp),
+                verticalArrangement = Arrangement.spacedBy(10.dp)
             ) {
-                Text(
-                    text = "So Sánh Giá Xăng Thế Giới",
-                    color = TextPrimaryDark,
-                    fontSize = 22.sp,
-                    fontWeight = FontWeight.Bold
-                )
-
-                // Nút (?) giải thích sức mua
-                IconButton(
-                    onClick = { showInfoDialog = true },
-                    modifier = Modifier.size(36.dp)
+                // Hàng 1: Tiêu đề + Nút hướng dẫn + Đơn vị tiền tệ [ VND | USD ]
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically
                 ) {
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        Text(
+                            text = "Giá Xăng Thế Giới",
+                            color = TextPrimaryDark,
+                            fontSize = 20.sp,
+                            fontWeight = FontWeight.Bold
+                        )
+
+                        Spacer(modifier = Modifier.width(6.dp))
+
+                        // Nút (?) giải thích sức mua
+                        IconButton(
+                            onClick = { showInfoDialog = true },
+                            modifier = Modifier.size(32.dp)
+                        ) {
+                            Surface(
+                                color = PetrolTeal.copy(alpha = 0.2f),
+                                shape = RoundedCornerShape(16.dp)
+                            ) {
+                                Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+                                    Text(text = "💡", fontSize = 15.sp)
+                                }
+                            }
+                        }
+                    }
+
+                    // Chuyển đổi tiền tệ [ VND ] | [ USD ]
                     Surface(
-                        color = PetrolTeal.copy(alpha = 0.2f),
-                        shape = RoundedCornerShape(18.dp)
+                        color = DarkSurface,
+                        shape = RoundedCornerShape(20.dp),
+                        border = androidx.compose.foundation.BorderStroke(1.dp, PetrolTeal.copy(alpha = 0.3f))
                     ) {
-                        Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-                            Text(text = "💡", fontSize = 16.sp)
+                        Row(modifier = Modifier.padding(3.dp)) {
+                            CurrencyToggleChip(
+                                label = "VND",
+                                isSelected = selectedCurrency == "VND",
+                                onClick = { selectedCurrency = "VND" }
+                            )
+                            CurrencyToggleChip(
+                                label = "USD",
+                                isSelected = selectedCurrency == "USD",
+                                onClick = { selectedCurrency = "USD" }
+                            )
                         }
                     }
                 }
-            }
 
-            Text(
-                text = "Cập nhật hôm nay • $displayDate • Dữ liệu 168 quốc gia",
-                color = TextSecondaryDark,
-                fontSize = 12.sp,
-                modifier = Modifier.padding(top = 2.dp)
-            )
-        }
-
-        // 2. Chuyển đổi tiền tệ [ VND ] | [ USD ]
-        item {
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.SpaceBetween,
-                verticalAlignment = Alignment.CenterVertically
-            ) {
+                // Dòng chú thích số lượng quốc gia & thời gian
                 Text(
-                    text = "Đơn vị tiền tệ:",
+                    text = "Dữ liệu ${data.totalCountries} quốc gia • Cập nhật $displayDate",
                     color = TextSecondaryDark,
-                    fontSize = 13.sp
+                    fontSize = 12.sp
                 )
 
-                Surface(
-                    color = DarkSurface,
-                    shape = RoundedCornerShape(20.dp),
-                    border = androidx.compose.foundation.BorderStroke(1.dp, PetrolTeal.copy(alpha = 0.3f))
+                // Tab chuyển danh mục [ Đông Nam Á | Top Rẻ | Toàn Cầu ] CỐ ĐỊNH
+                PrimaryTabRow(
+                    selectedTabIndex = selectedTab,
+                    containerColor = DarkSurface,
+                    contentColor = PetrolTeal,
+                    modifier = Modifier.clip(RoundedCornerShape(12.dp))
                 ) {
-                    Row(modifier = Modifier.padding(4.dp)) {
-                        CurrencyToggleChip(
-                            label = "VND",
-                            isSelected = selectedCurrency == "VND",
-                            onClick = { selectedCurrency = "VND" }
-                        )
-                        CurrencyToggleChip(
-                            label = "USD",
-                            isSelected = selectedCurrency == "USD",
-                            onClick = { selectedCurrency = "USD" }
-                        )
-                    }
+                    Tab(
+                        selected = selectedTab == 0,
+                        onClick = { selectedTab = 0 },
+                        text = {
+                            Text(
+                                text = "Đông Nam Á (${aseanCountries.size})",
+                                fontSize = 12.sp,
+                                fontWeight = if (selectedTab == 0) FontWeight.Bold else FontWeight.Normal
+                            )
+                        }
+                    )
+                    Tab(
+                        selected = selectedTab == 1,
+                        onClick = { selectedTab = 1 },
+                        text = {
+                            Text(
+                                text = "Top Rẻ Nhất",
+                                fontSize = 12.sp,
+                                fontWeight = if (selectedTab == 1) FontWeight.Bold else FontWeight.Normal
+                            )
+                        }
+                    )
+                    Tab(
+                        selected = selectedTab == 2,
+                        onClick = { selectedTab = 2 },
+                        text = {
+                            Text(
+                                text = "Toàn Cầu (${allCountries.size})",
+                                fontSize = 12.sp,
+                                fontWeight = if (selectedTab == 2) FontWeight.Bold else FontWeight.Normal
+                            )
+                        }
+                    )
                 }
             }
         }
 
-        // 3. Tab chuyển danh mục [ ASEAN | Top Rẻ | Toàn Cầu ]
-        item {
-            PrimaryTabRow(
-                selectedTabIndex = selectedTab,
-                containerColor = DarkSurface,
-                contentColor = PetrolTeal,
-                modifier = Modifier.clip(RoundedCornerShape(12.dp))
-            ) {
-                Tab(
-                    selected = selectedTab == 0,
-                    onClick = { selectedTab = 0 },
-                    text = { Text("Đông Nam Á (ASEAN)", fontSize = 12.sp, fontWeight = if (selectedTab == 0) FontWeight.Bold else FontWeight.Normal) }
-                )
-                Tab(
-                    selected = selectedTab == 1,
-                    onClick = { selectedTab = 1 },
-                    text = { Text("Top Rẻ Nhất", fontSize = 12.sp, fontWeight = if (selectedTab == 1) FontWeight.Bold else FontWeight.Normal) }
-                )
-                Tab(
-                    selected = selectedTab == 2,
-                    onClick = { selectedTab = 2 },
-                    text = { Text("Toàn Cầu", fontSize = 12.sp, fontWeight = if (selectedTab == 2) FontWeight.Bold else FontWeight.Normal) }
-                )
+        HorizontalDivider(color = DarkSurfaceVariant.copy(alpha = 0.4f), thickness = 1.dp)
+
+        // -----------------------------------------------------------
+        // 2. DANH SÁCH CUỘN DƯỚI THANH NAV CỐ ĐỊNH
+        // -----------------------------------------------------------
+        LazyColumn(
+            state = listState,
+            modifier = Modifier
+                .fillMaxSize()
+                .padding(horizontal = 16.dp),
+            verticalArrangement = Arrangement.spacedBy(14.dp)
+        ) {
+            item {
+                Spacer(modifier = Modifier.height(2.dp))
             }
-        }
 
         // 4. Highlight Thẻ Việt Nam
         item {
@@ -229,6 +277,7 @@ fun WorldCompareScreen(
             Spacer(modifier = Modifier.height(80.dp)) // Tránh che banner đáy
         }
     }
+}
 
     // HỘP THOẠI GIẢI THÍCH SỨC MUA TRỰC QUAN
     if (showInfoDialog) {
