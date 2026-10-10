@@ -185,23 +185,31 @@ fun VietnamFuelScreen(
         // 4. Bento Grid các mặt hàng khác (E5, Diesel...)
         item {
             val otherItems = data.items.filter { !it.isFeatured }
+            val chunks = otherItems.chunked(2)
             Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
-                for (chunk in otherItems.chunked(2)) {
-                    Row(
-                        modifier = Modifier.fillMaxWidth(),
-                        horizontalArrangement = Arrangement.spacedBy(12.dp)
-                    ) {
-                        for (item in chunk) {
-                            FuelBentoCard(
-                                item = item,
-                                zone = selectedZone,
-                                currencyFormat = currencyFormat,
-                                modifier = Modifier.weight(1f)
-                            )
+                for (chunk in chunks) {
+                    if (chunk.size == 2) {
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.spacedBy(12.dp)
+                        ) {
+                            for (item in chunk) {
+                                FuelBentoCard(
+                                    item = item,
+                                    zone = selectedZone,
+                                    currencyFormat = currencyFormat,
+                                    modifier = Modifier.weight(1f)
+                                )
+                            }
                         }
-                        if (chunk.size == 1) {
-                            Spacer(modifier = Modifier.weight(1f))
-                        }
+                    } else {
+                        // Khi còn lẻ 1 món (ví dụ Dầu DO): Trải rộng thanh lịch toàn hàng ngang, không để trống bên phải
+                        FuelWideCard(
+                            item = chunk[0],
+                            zone = selectedZone,
+                            currencyFormat = currencyFormat,
+                            modifier = Modifier.fillMaxWidth()
+                        )
                     }
                 }
             }
@@ -222,39 +230,75 @@ fun VietnamFuelScreen(
                 colors = CardDefaults.cardColors(containerColor = DarkSurface),
                 border = androidx.compose.foundation.BorderStroke(1.dp, PetrolTeal.copy(alpha = 0.3f))
             ) {
-                Column(modifier = Modifier.padding(16.dp)) {
+                Column(modifier = Modifier.padding(14.dp)) {
                     Row(
                         modifier = Modifier.fillMaxWidth(),
                         horizontalArrangement = Arrangement.SpaceBetween,
                         verticalAlignment = Alignment.CenterVertically
                     ) {
-                        Text(
-                            text = "🌍 So sánh giá xăng ASEAN",
-                            color = TextPrimaryDark,
-                            fontWeight = FontWeight.Bold,
-                            fontSize = 16.sp
-                        )
-                        Text(
-                            text = "Xem tất cả →",
-                            color = PetrolTeal,
-                            fontSize = 13.sp,
-                            fontWeight = FontWeight.SemiBold
-                        )
+                        Row(
+                            modifier = Modifier.weight(1f, fill = false),
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            Text(text = "🌍", fontSize = 18.sp)
+                            Spacer(modifier = Modifier.width(8.dp))
+                            Text(
+                                text = "So sánh giá ASEAN",
+                                color = TextPrimaryDark,
+                                fontWeight = FontWeight.Bold,
+                                fontSize = 15.sp,
+                                maxLines = 1
+                            )
+                        }
+
+                        Spacer(modifier = Modifier.width(8.dp))
+
+                        // Nút "Xem tất cả →" (Chống rớt dòng dọc triệt để)
+                        Surface(
+                            color = PetrolTeal.copy(alpha = 0.15f),
+                            shape = RoundedCornerShape(12.dp)
+                        ) {
+                            Text(
+                                text = "Xem tất cả →",
+                                color = PetrolTeal,
+                                fontSize = 12.sp,
+                                fontWeight = FontWeight.SemiBold,
+                                maxLines = 1,
+                                softWrap = false,
+                                modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp)
+                            )
+                        }
                     }
 
                     Spacer(modifier = Modifier.height(10.dp))
 
-                    Text(
-                        text = "🇻🇳 VN: 21.310 đ  vs  🇲🇾 Malaysia: 11.382 đ  vs  🇹🇭 Thái: 29.748 đ",
-                        color = TextSecondaryDark,
-                        fontSize = 13.sp
-                    )
+                    // Bảng 3 cột trực quan & chuyên nghiệp
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.SpaceBetween
+                    ) {
+                        Column {
+                            Text(text = "🇻🇳 Việt Nam", color = TextSecondaryDark, fontSize = 11.sp)
+                            Spacer(modifier = Modifier.height(2.dp))
+                            Text(text = "28.250 đ", color = TextPrimaryDark, fontSize = 13.sp, fontWeight = FontWeight.SemiBold)
+                        }
+                        Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                            Text(text = "🇲🇾 Malaysia", color = TextSecondaryDark, fontSize = 11.sp)
+                            Spacer(modifier = Modifier.height(2.dp))
+                            Text(text = "11.380 đ", color = PriceGreen, fontSize = 13.sp, fontWeight = FontWeight.SemiBold)
+                        }
+                        Column(horizontalAlignment = Alignment.End) {
+                            Text(text = "🇹🇭 Thái Lan", color = TextSecondaryDark, fontSize = 11.sp)
+                            Spacer(modifier = Modifier.height(2.dp))
+                            Text(text = "29.750 đ", color = PriceRed, fontSize = 13.sp, fontWeight = FontWeight.SemiBold)
+                        }
+                    }
                 }
             }
         }
 
         item {
-            Spacer(modifier = Modifier.height(80.dp)) // Tránh che banner đáy
+            Spacer(modifier = Modifier.height(110.dp)) // Tránh che banner đáy
         }
     }
 
@@ -305,6 +349,46 @@ fun FuelBentoCard(
             Spacer(modifier = Modifier.height(6.dp))
 
             DeltaPriceBadge(delta = item.delta, isCompact = true)
+        }
+    }
+}
+
+@Composable
+fun FuelWideCard(
+    item: FuelItem,
+    zone: Int,
+    currencyFormat: NumberFormat,
+    modifier: Modifier = Modifier
+) {
+    Card(
+        modifier = modifier.clip(RoundedCornerShape(16.dp)),
+        colors = CardDefaults.cardColors(containerColor = DarkSurface)
+    ) {
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(horizontal = 16.dp, vertical = 14.dp),
+            horizontalArrangement = Arrangement.SpaceBetween,
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Column(modifier = Modifier.weight(1f)) {
+                Text(
+                    text = item.name,
+                    color = TextSecondaryDark,
+                    fontSize = 13.sp,
+                    fontWeight = FontWeight.Medium,
+                    maxLines = 1
+                )
+                Spacer(modifier = Modifier.height(4.dp))
+                DeltaPriceBadge(delta = item.delta, isCompact = true)
+            }
+
+            Text(
+                text = "${currencyFormat.format(item.getPrice(zone))} đ/lít",
+                color = TextPrimaryDark,
+                fontSize = 18.sp,
+                fontWeight = FontWeight.Bold
+            )
         }
     }
 }
