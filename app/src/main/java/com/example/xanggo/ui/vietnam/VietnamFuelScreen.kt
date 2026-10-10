@@ -11,6 +11,7 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
@@ -45,28 +46,45 @@ fun VietnamFuelScreen(
             .padding(horizontal = 16.dp),
         verticalArrangement = Arrangement.spacedBy(12.dp)
     ) {
-        // 1. Header: Logo & Region Switcher
+        // 1. Header: Logo & Region Switcher Đẳng Cấp
         item {
-            Spacer(modifier = Modifier.height(6.dp))
+            Spacer(modifier = Modifier.height(4.dp))
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.SpaceBetween,
                 verticalAlignment = Alignment.CenterVertically
             ) {
                 Row(verticalAlignment = Alignment.CenterVertically) {
-                    Text(text = "⛽", fontSize = 26.sp)
-                    Spacer(modifier = Modifier.width(8.dp))
-                    Text(
-                        text = "XăngGo",
-                        color = TextPrimaryDark,
-                        fontSize = 22.sp,
-                        fontWeight = FontWeight.Bold
-                    )
+                    // Logo Box đỏ nổi bật
+                    Box(
+                        modifier = Modifier
+                            .size(36.dp)
+                            .clip(RoundedCornerShape(10.dp))
+                            .background(Brush.linearGradient(listOf(Color(0xFFEF4444), Color(0xFFDC2626)))),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Text(text = "⛽", fontSize = 18.sp)
+                    }
+                    Spacer(modifier = Modifier.width(10.dp))
+                    Row {
+                        Text(
+                            text = "Xăng",
+                            color = TextPrimaryDark,
+                            fontSize = 24.sp,
+                            fontWeight = FontWeight.ExtraBold
+                        )
+                        Text(
+                            text = "Go",
+                            color = PetrolTeal,
+                            fontSize = 24.sp,
+                            fontWeight = FontWeight.ExtraBold
+                        )
+                    }
                 }
 
-                // Nút chọn Vùng 1 / Vùng 2 (Mở hộp thoại giải thích & chọn tỉnh)
+                // Nút chọn Vùng 1 / Vùng 2 (Pill hiện đại với mũi tên chéo & chevron)
                 Surface(
-                    color = PetrolTeal.copy(alpha = 0.15f),
+                    color = PetrolTeal.copy(alpha = 0.12f),
                     shape = RoundedCornerShape(20.dp),
                     border = androidx.compose.foundation.BorderStroke(1.dp, PetrolTeal.copy(alpha = 0.5f)),
                     modifier = Modifier.clickable { showZoneDialog = true }
@@ -75,17 +93,20 @@ fun VietnamFuelScreen(
                         modifier = Modifier.padding(horizontal = 12.dp, vertical = 6.dp),
                         verticalAlignment = Alignment.CenterVertically
                     ) {
-                        Text(text = "📍 ", fontSize = 13.sp)
+                        Text(text = "↗ ", color = PetrolTeal, fontSize = 12.sp, fontWeight = FontWeight.Bold)
                         Text(
-                            text = if (selectedZone == 1) "Vùng 1 (Giá chuẩn)" else "Vùng 2 (+2% cước)",
+                            text = if (selectedProvince.isNotEmpty()) selectedProvince
+                                   else if (selectedZone == 1) "Vùng 1 (Giá chuẩn)"
+                                   else "Vùng 2 (+2% cước)",
                             color = PetrolTeal,
-                            fontWeight = FontWeight.SemiBold,
-                            fontSize = 13.sp
+                            fontWeight = FontWeight.Bold,
+                            fontSize = 12.sp
                         )
                         Text(
-                            text = " ▾",
+                            text = " ›",
                             color = PetrolTeal,
-                            fontSize = 12.sp
+                            fontSize = 14.sp,
+                            fontWeight = FontWeight.Bold
                         )
                     }
                 }
@@ -95,7 +116,7 @@ fun VietnamFuelScreen(
             Row(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .padding(top = 4.dp),
+                    .padding(top = 6.dp),
                 horizontalArrangement = Arrangement.SpaceBetween,
                 verticalAlignment = Alignment.CenterVertically
             ) {
@@ -114,58 +135,82 @@ fun VietnamFuelScreen(
             }
         }
 
-        // 2. Hero Card: RON 95-III (Nhiều người dùng nhất)
+        // 2. Hero Card: RON 95-III (Hiệu ứng viền phát sáng & Phần trăm tài chính)
         item {
             val heroItem = data.items.firstOrNull { it.isFeatured } ?: data.items.first()
             val currentPrice = heroItem.getPrice(selectedZone)
             val previousPrice = currentPrice - heroItem.delta
+            val deltaPercent = if (previousPrice > 0) (heroItem.delta.toDouble() / previousPrice) * 100 else 0.0
 
             Card(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .clip(RoundedCornerShape(18.dp)),
+                    .clip(RoundedCornerShape(20.dp)),
                 colors = CardDefaults.cardColors(containerColor = DarkSurface),
+                border = androidx.compose.foundation.BorderStroke(
+                    1.dp,
+                    Brush.linearGradient(
+                        listOf(
+                            PetrolTeal.copy(alpha = 0.45f),
+                            Color.Transparent,
+                            PetrolTeal.copy(alpha = 0.25f)
+                        )
+                    )
+                ),
                 elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
             ) {
-                Column(modifier = Modifier.padding(16.dp)) {
+                Column(modifier = Modifier.padding(18.dp)) {
                     Row(
                         modifier = Modifier.fillMaxWidth(),
                         horizontalArrangement = Arrangement.SpaceBetween,
                         verticalAlignment = Alignment.CenterVertically
                     ) {
-                        Text(
-                            text = heroItem.name,
-                            color = TextSecondaryDark,
-                            fontSize = 15.sp,
-                            fontWeight = FontWeight.Medium
-                        )
+                        Row(verticalAlignment = Alignment.CenterVertically) {
+                            Surface(
+                                color = PetrolTeal.copy(alpha = 0.18f),
+                                shape = RoundedCornerShape(8.dp)
+                            ) {
+                                Text(
+                                    text = "⛽",
+                                    fontSize = 14.sp,
+                                    modifier = Modifier.padding(horizontal = 6.dp, vertical = 4.dp)
+                                )
+                            }
+                            Spacer(modifier = Modifier.width(8.dp))
+                            Text(
+                                text = heroItem.name,
+                                color = TextPrimaryDark,
+                                fontSize = 16.sp,
+                                fontWeight = FontWeight.Bold
+                            )
+                        }
 
-                        // Badge Tăng / Giảm giá
-                        DeltaPriceBadge(delta = heroItem.delta)
+                        // Badge Tăng / Giảm giá kèm %
+                        DeltaPriceBadge(delta = heroItem.delta, percent = deltaPercent)
                     }
 
-                    Spacer(modifier = Modifier.height(8.dp))
+                    Spacer(modifier = Modifier.height(10.dp))
 
                     Row(verticalAlignment = Alignment.Bottom) {
                         Text(
                             text = currencyFormat.format(currentPrice),
                             color = TextPrimaryDark,
-                            fontSize = 34.sp,
+                            fontSize = 36.sp,
                             fontWeight = FontWeight.ExtraBold
                         )
                         Text(
                             text = " đ/lít",
                             color = TextSecondaryDark,
-                            fontSize = 15.sp,
+                            fontSize = 16.sp,
                             modifier = Modifier.padding(bottom = 5.dp, start = 4.dp)
                         )
                     }
 
-                    Spacer(modifier = Modifier.height(6.dp))
+                    Spacer(modifier = Modifier.height(8.dp))
 
-                    // Chống rớt dòng mồ côi chữ đ
+                    // Chống rớt dòng mồ côi chữ đ/lít
                     Text(
-                        text = "Kỳ trước: ${currencyFormat.format(previousPrice)}\u00A0đ  •  Vùng ${if (selectedZone == 1) "2: " + currencyFormat.format(heroItem.zone2Price) else "1: " + currencyFormat.format(heroItem.zone1Price)}\u00A0đ",
+                        text = "Kỳ trước: ${currencyFormat.format(previousPrice)}\u00A0đ/lít  •  Vùng ${if (selectedZone == 1) "2: " + currencyFormat.format(heroItem.zone2Price) else "1: " + currencyFormat.format(heroItem.zone1Price)}\u00A0đ/lít",
                         color = TextSecondaryDark,
                         fontSize = 12.sp,
                         maxLines = 1,
@@ -394,7 +439,7 @@ fun FuelWideCard(
 }
 
 @Composable
-fun DeltaPriceBadge(delta: Int, isCompact: Boolean = false) {
+fun DeltaPriceBadge(delta: Int, percent: Double? = null, isCompact: Boolean = false) {
     val isDrop = delta < 0
     val isRaise = delta > 0
 
@@ -410,23 +455,44 @@ fun DeltaPriceBadge(delta: Int, isCompact: Boolean = false) {
         else -> TextSecondaryDark
     }
 
-    val text = when {
-        isDrop -> if (isCompact) "▼ ${-delta}đ" else "▼ Giảm ${-delta} đ/L"
-        isRaise -> if (isCompact) "▲ +${delta}đ" else "▲ Tăng ${delta} đ/L"
-        else -> "Giữ nguyên"
-    }
-
     Surface(
         color = bgColor,
         shape = RoundedCornerShape(12.dp)
     ) {
-        Text(
-            text = text,
-            color = textColor,
-            fontSize = if (isCompact) 11.sp else 12.sp,
-            fontWeight = FontWeight.SemiBold,
-            modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp)
-        )
+        if (percent != null && !isCompact) {
+            Column(
+                modifier = Modifier.padding(horizontal = 10.dp, vertical = 5.dp),
+                horizontalAlignment = Alignment.CenterHorizontally
+            ) {
+                Text(
+                    text = if (isRaise) "▲ +${delta} đ/lít" else if (isDrop) "▼ ${delta} đ/lít" else "Không đổi",
+                    color = textColor,
+                    fontSize = 12.sp,
+                    fontWeight = FontWeight.Bold
+                )
+                Text(
+                    text = if (isRaise) "(+${String.format(Locale.GERMANY, "%.1f", percent)}%)"
+                           else if (isDrop) "(${String.format(Locale.GERMANY, "%.1f", percent)}%)"
+                           else "(0,0%)",
+                    color = textColor.copy(alpha = 0.85f),
+                    fontSize = 11.sp,
+                    fontWeight = FontWeight.SemiBold
+                )
+            }
+        } else {
+            val text = when {
+                isDrop -> if (isCompact) "▼ ${-delta}đ" else "▼ Giảm ${-delta} đ/lít"
+                isRaise -> if (isCompact) "▲ +${delta}đ" else "▲ Tăng ${delta} đ/lít"
+                else -> "Không đổi"
+            }
+            Text(
+                text = text,
+                color = textColor,
+                fontSize = if (isCompact) 11.sp else 12.sp,
+                fontWeight = FontWeight.SemiBold,
+                modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp)
+            )
+        }
     }
 }
 
