@@ -14,11 +14,21 @@ data class FuelItem(
     fun getPrice(zone: Int): Int = if (zone == 2) zone2Price else zone1Price
 }
 
+data class PriceHistoryPoint(
+    val date: String, // "08/10"
+    val fullDate: String = "", // "08/10/2026"
+    val ron95Price: Int = 0,
+    val e5Price: Int = 0,
+    val dieselPrice: Int = 0,
+    val deltaRon95: Int = 0
+)
+
 data class VietnamFuelData(
     val updatedAt: String,
     val announcementTitle: String,
     val source: String,
-    val items: List<FuelItem>
+    val items: List<FuelItem>,
+    val history: List<PriceHistoryPoint> = emptyList()
 )
 
 data class CountryFuel(

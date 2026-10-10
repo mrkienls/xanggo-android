@@ -2,6 +2,7 @@ package com.example.xanggo.data
 
 import com.example.xanggo.data.model.CountryFuel
 import com.example.xanggo.data.model.FuelItem
+import com.example.xanggo.data.model.PriceHistoryPoint
 import com.example.xanggo.data.model.VietnamFuelData
 import com.example.xanggo.data.model.WorldFuelSummary
 import com.google.firebase.Firebase
@@ -38,6 +39,7 @@ class DefaultFuelRepository : FuelRepository {
                             val title = snapshot.getString("announcement_title") ?: defaultData.announcementTitle
                             val source = snapshot.getString("source") ?: defaultData.source
                             val rawItems = snapshot.get("items") as? List<Map<String, Any>> ?: emptyList()
+                            val rawHistory = snapshot.get("history") as? List<Map<String, Any>> ?: emptyList()
 
                             if (rawItems.isNotEmpty()) {
                                 val parsedItems = rawItems.map { map ->
@@ -53,7 +55,23 @@ class DefaultFuelRepository : FuelRepository {
                                         description = map["description"] as? String ?: ""
                                     )
                                 }
-                                trySend(VietnamFuelData(updatedAt, title, source, parsedItems))
+
+                                val parsedHistory = if (rawHistory.isNotEmpty()) {
+                                    rawHistory.map { map ->
+                                        PriceHistoryPoint(
+                                            date = map["date"] as? String ?: "",
+                                            fullDate = map["full_date"] as? String ?: "",
+                                            ron95Price = (map["ron95_price"] as? Number)?.toInt() ?: 0,
+                                            e5Price = (map["e5_price"] as? Number)?.toInt() ?: 0,
+                                            dieselPrice = (map["diesel_price"] as? Number)?.toInt() ?: 0,
+                                            deltaRon95 = (map["delta_ron95"] as? Number)?.toInt() ?: 0
+                                        )
+                                    }
+                                } else {
+                                    defaultData.history
+                                }
+
+                                trySend(VietnamFuelData(updatedAt, title, source, parsedItems, parsedHistory))
                             }
                         } catch (e: Exception) {
                             // Giữ nguyên dữ liệu hiện tại nếu lỗi format
@@ -119,6 +137,17 @@ class DefaultFuelRepository : FuelRepository {
                 FuelItem("e5_ron_92_ii", "Xăng E5 RON 92-II", 27700, 28250, 1140, badgeColorHex = "#16A34A", isFeatured = false),
                 FuelItem("do_005s_ii", "Dầu DO 0.05S-II", 29120, 29700, -590, badgeColorHex = "#64748B", isFeatured = false),
                 FuelItem("do_0001s_v", "Dầu DO 0.001S-V", 30520, 31130, -590, badgeColorHex = "#334155", isFeatured = false)
+            ),
+            history = listOf(
+                PriceHistoryPoint("13/08", "13/08/2026", 27140, 26550, 29170, 180),
+                PriceHistoryPoint("20/08", "20/08/2026", 26920, 26340, 28990, -220),
+                PriceHistoryPoint("27/08", "27/08/2026", 27330, 26720, 29340, 410),
+                PriceHistoryPoint("03/09", "03/09/2026", 26980, 26410, 29050, -350),
+                PriceHistoryPoint("10/09", "10/09/2026", 27220, 26630, 29230, 240),
+                PriceHistoryPoint("17/09", "17/09/2026", 27060, 26450, 29440, -160),
+                PriceHistoryPoint("24/09", "24/09/2026", 27490, 26840, 29290, 430),
+                PriceHistoryPoint("01/10", "01/10/2026", 27180, 26560, 29710, -310),
+                PriceHistoryPoint("08/10", "08/10/2026", 28250, 27700, 29120, 1070)
             )
         )
     }

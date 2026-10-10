@@ -18,6 +18,7 @@ import androidx.compose.ui.unit.sp
 import com.example.xanggo.data.model.FuelItem
 import com.example.xanggo.data.model.VietnamFuelData
 import com.example.xanggo.theme.*
+import com.example.xanggo.ui.components.PriceHistoryChartCard
 import java.text.NumberFormat
 import java.util.Locale
 
@@ -150,7 +151,14 @@ fun VietnamFuelScreen(
             }
         }
 
-        // 3. Bento Grid các mặt hàng khác (E5, Diesel...)
+        // 3. Biểu đồ biến động giá xăng dầu lịch sử
+        if (data.history.isNotEmpty()) {
+            item {
+                PriceHistoryChartCard(history = data.history)
+            }
+        }
+
+        // 4. Bento Grid các mặt hàng khác (E5, Diesel...)
         item {
             val otherItems = data.items.filter { !it.isFeatured }
             Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
