@@ -9,7 +9,7 @@ android {
     namespace = "com.example.xanggo"
     compileSdk = 36
     defaultConfig {
-        applicationId = "com.example.xanggo"
+        applicationId = "vn.xanggo.app"
         minSdk = 24
         targetSdk = 36
         versionCode = 1
