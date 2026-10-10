@@ -18,6 +18,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.example.xanggo.data.model.CountryFuel
@@ -802,13 +803,16 @@ fun CountryFuelRow(
                             text = country.name,
                             color = if (isVn) PetrolTeal else TextPrimaryDark,
                             fontSize = 14.sp,
-                            fontWeight = if (isVn) FontWeight.Bold else FontWeight.SemiBold
+                            fontWeight = if (isVn) FontWeight.Bold else FontWeight.SemiBold,
+                            maxLines = 1,
+                            overflow = TextOverflow.Ellipsis
                         )
                         Text(
                             text = subtagText,
                             color = if (isVn) PetrolTeal.copy(alpha = 0.85f) else TextSecondaryDark,
                             fontSize = 11.sp,
-                            maxLines = 1
+                            maxLines = 1,
+                            overflow = TextOverflow.Ellipsis
                         )
                     }
                 }
@@ -827,7 +831,9 @@ fun CountryFuelRow(
                         text = priceText,
                         color = TextPrimaryDark,
                         fontSize = 14.sp,
-                        fontWeight = FontWeight.Bold
+                        fontWeight = FontWeight.Bold,
+                        maxLines = 1,
+                        softWrap = false
                     )
 
                     Spacer(modifier = Modifier.height(3.dp))

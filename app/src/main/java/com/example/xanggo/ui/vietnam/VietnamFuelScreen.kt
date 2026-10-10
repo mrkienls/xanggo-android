@@ -14,6 +14,7 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import android.content.Context
@@ -105,7 +106,10 @@ fun VietnamFuelScreen(
                                    else "Vùng 2 (+2% cước)",
                             color = PetrolTeal,
                             fontWeight = FontWeight.Bold,
-                            fontSize = 12.sp
+                            fontSize = 12.sp,
+                            maxLines = 1,
+                            overflow = TextOverflow.Ellipsis,
+                            modifier = Modifier.widthIn(max = 140.dp)
                         )
                         Text(
                             text = " ›",
@@ -170,7 +174,10 @@ fun VietnamFuelScreen(
                         horizontalArrangement = Arrangement.SpaceBetween,
                         verticalAlignment = Alignment.CenterVertically
                     ) {
-                        Row(verticalAlignment = Alignment.CenterVertically) {
+                        Row(
+                            modifier = Modifier.weight(1f, fill = false),
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
                             Surface(
                                 color = PetrolTeal.copy(alpha = 0.18f),
                                 shape = RoundedCornerShape(8.dp)
@@ -186,7 +193,9 @@ fun VietnamFuelScreen(
                                 text = heroItem.name,
                                 color = TextPrimaryDark,
                                 fontSize = 16.sp,
-                                fontWeight = FontWeight.Bold
+                                fontWeight = FontWeight.Bold,
+                                maxLines = 1,
+                                overflow = TextOverflow.Ellipsis
                             )
                         }
 
@@ -481,7 +490,9 @@ fun DeltaPriceBadge(delta: Int, percent: Double? = null, isCompact: Boolean = fa
                     text = if (isRaise) "▲ +${delta} đ/lít" else if (isDrop) "▼ ${delta} đ/lít" else "Không đổi",
                     color = textColor,
                     fontSize = 12.sp,
-                    fontWeight = FontWeight.Bold
+                    fontWeight = FontWeight.Bold,
+                    maxLines = 1,
+                    softWrap = false
                 )
                 Text(
                     text = if (isRaise) "(+${String.format(Locale.GERMANY, "%.1f", percent)}%)"
@@ -489,7 +500,9 @@ fun DeltaPriceBadge(delta: Int, percent: Double? = null, isCompact: Boolean = fa
                            else "(0,0%)",
                     color = textColor.copy(alpha = 0.85f),
                     fontSize = 11.sp,
-                    fontWeight = FontWeight.SemiBold
+                    fontWeight = FontWeight.SemiBold,
+                    maxLines = 1,
+                    softWrap = false
                 )
             }
         } else {
@@ -503,6 +516,8 @@ fun DeltaPriceBadge(delta: Int, percent: Double? = null, isCompact: Boolean = fa
                 color = textColor,
                 fontSize = if (isCompact) 11.sp else 12.sp,
                 fontWeight = FontWeight.SemiBold,
+                maxLines = 1,
+                softWrap = false,
                 modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp)
             )
         }

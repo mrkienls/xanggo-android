@@ -85,9 +85,11 @@ fun MainScreen(
                         },
                         label = {
                             Text(
-                                text = "Tìm Trạm Xăng",
+                                text = "Trạm Xăng",
                                 fontSize = 11.sp,
-                                fontWeight = if (currentTab == 1) FontWeight.Bold else FontWeight.Normal
+                                fontWeight = if (currentTab == 1) FontWeight.Bold else FontWeight.Normal,
+                                maxLines = 1,
+                                softWrap = false
                             )
                         },
                         colors = NavigationBarItemDefaults.colors(

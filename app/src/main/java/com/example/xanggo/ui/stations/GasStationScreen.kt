@@ -27,6 +27,7 @@ import androidx.compose.ui.unit.sp
 import com.example.xanggo.theme.*
 import com.example.xanggo.ui.components.GasPumpVector
 import com.example.xanggo.ui.components.LocationPinVector
+import androidx.compose.ui.text.style.TextOverflow
 import java.text.Normalizer
 import java.util.regex.Pattern
 
@@ -272,71 +273,70 @@ fun GasStationScreen() {
                 border = androidx.compose.foundation.BorderStroke(1.5.dp, PetrolTeal.copy(alpha = 0.7f))
             ) {
                 Column(modifier = Modifier.padding(16.dp)) {
-                    // Header thẻ: Icon to + Tiêu đề + Nút "Xem bản đồ >"
+                    // Header thẻ: Icon to + Tiêu đề + Nút "Bản đồ ›" (Tối ưu chống tràn màn hình hẹp)
                     Row(
                         modifier = Modifier.fillMaxWidth(),
-                        horizontalArrangement = Arrangement.SpaceBetween,
                         verticalAlignment = Alignment.CenterVertically
                     ) {
-                        Row(
-                            modifier = Modifier.weight(1f),
-                            verticalAlignment = Alignment.CenterVertically
-                        ) {
-                            Box(
-                                modifier = Modifier
-                                    .size(48.dp)
-                                    .clip(CircleShape)
-                                    .background(
-                                        Brush.radialGradient(
-                                            listOf(
-                                                Color(0xFF14B8A6),
-                                                Color(0xFF0D9488),
-                                                Color(0xFF042F2E)
-                                            )
+                        Box(
+                            modifier = Modifier
+                                .size(42.dp)
+                                .clip(CircleShape)
+                                .background(
+                                    Brush.radialGradient(
+                                        listOf(
+                                            Color(0xFF14B8A6),
+                                            Color(0xFF0D9488),
+                                            Color(0xFF042F2E)
                                         )
-                                    ),
-                                contentAlignment = Alignment.Center
-                            ) {
-                                Icon(
-                                    imageVector = LocationPinVector,
-                                    contentDescription = null,
-                                    tint = Color.White,
-                                    modifier = Modifier.size(26.dp)
-                                )
-                            }
-                            Spacer(modifier = Modifier.width(10.dp))
-                            Column {
-                                Text(
-                                    text = "Tìm Trạm Xăng Gần Bạn",
-                                    color = TextPrimaryDark,
-                                    fontSize = 15.sp,
-                                    fontWeight = FontWeight.Bold
-                                )
-                                Text(
-                                    text = "Xem giá, khoảng cách và lộ trình đến các trạm xăng trong khu vực.",
-                                    color = TextSecondaryDark,
-                                    fontSize = 11.sp,
-                                    lineHeight = 15.sp
-                                )
-                            }
+                                    )
+                                ),
+                            contentAlignment = Alignment.Center
+                        ) {
+                            Icon(
+                                imageVector = LocationPinVector,
+                                contentDescription = null,
+                                tint = Color.White,
+                                modifier = Modifier.size(24.dp)
+                            )
+                        }
+                        Spacer(modifier = Modifier.width(10.dp))
+                        Column(modifier = Modifier.weight(1f)) {
+                            Text(
+                                text = "Tìm Trạm Xăng Gần Bạn",
+                                color = TextPrimaryDark,
+                                fontSize = 15.sp,
+                                fontWeight = FontWeight.Bold,
+                                maxLines = 1,
+                                overflow = TextOverflow.Ellipsis
+                            )
+                            Text(
+                                text = "Xem giá & chỉ đường đến trạm gần nhất",
+                                color = TextSecondaryDark,
+                                fontSize = 11.sp,
+                                maxLines = 1,
+                                overflow = TextOverflow.Ellipsis
+                            )
                         }
 
-                        Spacer(modifier = Modifier.width(8.dp))
+                        Spacer(modifier = Modifier.width(6.dp))
 
-                        // Nút "Xem bản đồ >"
-                        Button(
-                            onClick = { openMapsSearchDirect(context, "cây xăng gần đây") },
-                            colors = ButtonDefaults.buttonColors(containerColor = PetrolTeal),
-                            shape = RoundedCornerShape(12.dp),
-                            contentPadding = PaddingValues(horizontal = 12.dp, vertical = 6.dp)
+                        // Nút "Bản đồ ›" tinh gọn chống vỡ layout
+                        Surface(
+                            color = PetrolTeal,
+                            shape = RoundedCornerShape(10.dp),
+                            modifier = Modifier.clickable { openMapsSearchDirect(context, "cây xăng gần đây") }
                         ) {
-                            Row(verticalAlignment = Alignment.CenterVertically) {
-                                Text(text = "🗺️", fontSize = 12.sp)
-                                Spacer(modifier = Modifier.width(4.dp))
+                            Row(
+                                modifier = Modifier.padding(horizontal = 9.dp, vertical = 6.dp),
+                                verticalAlignment = Alignment.CenterVertically
+                            ) {
+                                Text(text = "🗺️", fontSize = 11.sp)
+                                Spacer(modifier = Modifier.width(3.dp))
                                 Text(
-                                    text = "Xem bản đồ ›",
+                                    text = "Bản đồ ›",
                                     color = Color.Black,
-                                    fontSize = 12.sp,
+                                    fontSize = 11.5.sp,
                                     fontWeight = FontWeight.Bold,
                                     maxLines = 1,
                                     softWrap = false
@@ -347,55 +347,66 @@ fun GasStationScreen() {
 
                     Spacer(modifier = Modifier.height(14.dp))
 
-                    // Lưới 4 thương hiệu lớn tại Việt Nam (Petrolimex, PVOIL, Saigon Petro, Idemitsu Q8)
-                    Row(
+                    // Lưới 4 thương hiệu lớn tại Việt Nam dạng 2x2 Grid (Cực kỳ rộng rãi, không bao giờ bị cắt chữ)
+                    Column(
                         modifier = Modifier.fillMaxWidth(),
-                        horizontalArrangement = Arrangement.spacedBy(8.dp)
+                        verticalArrangement = Arrangement.spacedBy(8.dp)
                     ) {
-                        BrandOptionCard(
-                            name = "Petrolimex",
-                            subTag = "Phổ biến",
-                            logoEmoji = "🟠",
-                            accentColor = Color(0xFFF97316),
-                            isSelected = selectedBrandFilter == "PETROLIMEX",
-                            onClick = {
-                                selectedBrandFilter = if (selectedBrandFilter == "PETROLIMEX") "ALL" else "PETROLIMEX"
-                            },
-                            modifier = Modifier.weight(1f)
-                        )
-                        BrandOptionCard(
-                            name = "PVOIL",
-                            subTag = "Phổ biến",
-                            logoEmoji = "🔵",
-                            accentColor = Color(0xFF38BDF8),
-                            isSelected = selectedBrandFilter == "PVOIL",
-                            onClick = {
-                                selectedBrandFilter = if (selectedBrandFilter == "PVOIL") "ALL" else "PVOIL"
-                            },
-                            modifier = Modifier.weight(1f)
-                        )
-                        BrandOptionCard(
-                            name = "Saigon Petro",
-                            subTag = "Miền Nam",
-                            logoEmoji = "🟢",
-                            accentColor = Color(0xFF10B981),
-                            isSelected = selectedBrandFilter == "SAIGON_PETRO",
-                            onClick = {
-                                selectedBrandFilter = if (selectedBrandFilter == "SAIGON_PETRO") "ALL" else "SAIGON_PETRO"
-                            },
-                            modifier = Modifier.weight(1f)
-                        )
-                        BrandOptionCard(
-                            name = "Idemitsu",
-                            subTag = "Chuẩn Nhật",
-                            logoEmoji = "🔴",
-                            accentColor = Color(0xFFEF4444),
-                            isSelected = selectedBrandFilter == "IDEMITSU",
-                            onClick = {
-                                selectedBrandFilter = if (selectedBrandFilter == "IDEMITSU") "ALL" else "IDEMITSU"
-                            },
-                            modifier = Modifier.weight(1f)
-                        )
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.spacedBy(8.dp)
+                        ) {
+                            BrandOptionCard(
+                                name = "Petrolimex",
+                                subTag = "Phổ biến",
+                                logoEmoji = "🟠",
+                                accentColor = Color(0xFFF97316),
+                                isSelected = selectedBrandFilter == "PETROLIMEX",
+                                onClick = {
+                                    selectedBrandFilter = if (selectedBrandFilter == "PETROLIMEX") "ALL" else "PETROLIMEX"
+                                },
+                                modifier = Modifier.weight(1f)
+                            )
+                            BrandOptionCard(
+                                name = "PVOIL",
+                                subTag = "PVOIL Easy",
+                                logoEmoji = "🔵",
+                                accentColor = Color(0xFF38BDF8),
+                                isSelected = selectedBrandFilter == "PVOIL",
+                                onClick = {
+                                    selectedBrandFilter = if (selectedBrandFilter == "PVOIL") "ALL" else "PVOIL"
+                                },
+                                modifier = Modifier.weight(1f)
+                            )
+                        }
+
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.spacedBy(8.dp)
+                        ) {
+                            BrandOptionCard(
+                                name = "Saigon Petro",
+                                subTag = "Miền Nam",
+                                logoEmoji = "🟢",
+                                accentColor = Color(0xFF10B981),
+                                isSelected = selectedBrandFilter == "SAIGON_PETRO",
+                                onClick = {
+                                    selectedBrandFilter = if (selectedBrandFilter == "SAIGON_PETRO") "ALL" else "SAIGON_PETRO"
+                                },
+                                modifier = Modifier.weight(1f)
+                            )
+                            BrandOptionCard(
+                                name = "Idemitsu Q8",
+                                subTag = "Chuẩn Nhật",
+                                logoEmoji = "🔴",
+                                accentColor = Color(0xFFEF4444),
+                                isSelected = selectedBrandFilter == "IDEMITSU",
+                                onClick = {
+                                    selectedBrandFilter = if (selectedBrandFilter == "IDEMITSU") "ALL" else "IDEMITSU"
+                                },
+                                modifier = Modifier.weight(1f)
+                            )
+                        }
                     }
 
                     Spacer(modifier = Modifier.height(14.dp))
@@ -412,13 +423,13 @@ fun GasStationScreen() {
                         Row(
                             modifier = Modifier
                                 .fillMaxWidth()
-                                .padding(12.dp),
+                                .padding(10.dp),
                             verticalAlignment = Alignment.CenterVertically
                         ) {
-                            // Canvas mô phỏng bản đồ Radar với điểm định vị xanh phát sáng
+                            // Canvas mô phỏng bản đồ Radar thu gọn 85dp
                             Box(
                                 modifier = Modifier
-                                    .size(width = 110.dp, height = 70.dp)
+                                    .size(width = 85.dp, height = 62.dp)
                                     .clip(RoundedCornerShape(10.dp))
                                     .background(Color(0xFF0F172A)),
                                 contentAlignment = Alignment.Center
@@ -495,19 +506,23 @@ fun GasStationScreen() {
                                     Text(
                                         text = "Gần bạn nhất: 0.8 km • 3 phút",
                                         color = TextPrimaryDark,
-                                        fontSize = 12.sp,
-                                        fontWeight = FontWeight.Bold
+                                        fontSize = 11.5.sp,
+                                        fontWeight = FontWeight.Bold,
+                                        maxLines = 1,
+                                        overflow = TextOverflow.Ellipsis
                                     )
                                 }
                                 Spacer(modifier = Modifier.height(4.dp))
                                 Row(verticalAlignment = Alignment.CenterVertically) {
-                                    Text(text = "🧭", fontSize = 12.sp)
+                                    Text(text = "🧭", fontSize = 11.sp)
                                     Spacer(modifier = Modifier.width(4.dp))
                                     Text(
-                                        text = "Chỉ đường: Xem lộ trình trên Maps",
+                                        text = "Chỉ đường: Lộ trình Google Maps",
                                         color = PetrolTeal,
-                                        fontSize = 11.sp,
-                                        fontWeight = FontWeight.SemiBold
+                                        fontSize = 10.5.sp,
+                                        fontWeight = FontWeight.SemiBold,
+                                        maxLines = 1,
+                                        overflow = TextOverflow.Ellipsis
                                     )
                                 }
                             }
@@ -690,12 +705,16 @@ fun StationDetailCard(
                             text = station.name,
                             color = TextPrimaryDark,
                             fontSize = 13.5.sp,
-                            fontWeight = FontWeight.Bold
+                            fontWeight = FontWeight.Bold,
+                            maxLines = 1,
+                            overflow = TextOverflow.Ellipsis
                         )
                         Text(
                             text = station.address,
                             color = TextSecondaryDark,
-                            fontSize = 11.sp
+                            fontSize = 11.sp,
+                            maxLines = 1,
+                            overflow = TextOverflow.Ellipsis
                         )
                     }
                 }
