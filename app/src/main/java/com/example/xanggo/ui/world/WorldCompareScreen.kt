@@ -18,8 +18,10 @@ import androidx.compose.ui.unit.sp
 import com.example.xanggo.data.model.CountryFuel
 import com.example.xanggo.data.model.WorldFuelSummary
 import com.example.xanggo.theme.*
+import java.text.Normalizer
 import java.text.NumberFormat
 import java.util.Locale
+import java.util.regex.Pattern
 
 @Composable
 fun WorldCompareScreen(
@@ -27,6 +29,7 @@ fun WorldCompareScreen(
 ) {
     var selectedCurrency by remember { mutableStateOf("VND") } // "VND" hoặc "USD"
     var selectedTab by remember { mutableIntStateOf(0) } // 0: ASEAN, 1: Top Rẻ, 2: Toàn Cầu
+    var searchQuery by remember { mutableStateOf("") } // Từ khóa tìm kiếm quốc gia
     var showInfoDialog by remember { mutableStateOf(false) } // Hộp thoại giải thích Sức mua
     val currencyFormat = remember { NumberFormat.getNumberInstance(Locale.GERMANY) }
     val listState = rememberLazyListState()
@@ -41,14 +44,42 @@ fun WorldCompareScreen(
         data.countries.sortedBy { it.priceUsd }
     }
 
-    val filteredCountries = when (selectedTab) {
+    val currentTabList = when (selectedTab) {
         0 -> aseanCountries
         1 -> topCheapCountries
         else -> allCountries
     }
 
-    // Tự động cuộn lên đầu danh sách khi người dùng đổi Tab
+    // Lọc danh sách quốc gia theo từ khóa tìm kiếm (hỗ trợ tiếng Việt không dấu & có dấu)
+    val filteredCountries = remember(searchQuery, currentTabList, allCountries, selectedTab) {
+        val query = removeVietnameseAccents(searchQuery)
+        if (query.isEmpty()) {
+            currentTabList
+        } else {
+            val tabMatches = currentTabList.filter {
+                removeVietnameseAccents(it.name).contains(query) ||
+                it.code.lowercase().contains(query) ||
+                removeVietnameseAccents(it.note).contains(query)
+            }
+            // Nếu tìm kiếm từ khóa không có trong tab hiện tại (ví dụ đang ở Đông Nam Á mà gõ "Mỹ", "Đức"),
+            // tự động tìm trên toàn bộ 170 quốc gia để người dùng luôn tìm thấy kết quả!
+            if (tabMatches.isEmpty() && selectedTab != 2) {
+                allCountries.filter {
+                    removeVietnameseAccents(it.name).contains(query) ||
+                    it.code.lowercase().contains(query) ||
+                    removeVietnameseAccents(it.note).contains(query)
+                }
+            } else {
+                tabMatches
+            }
+        }
+    }
+
+    // Tự động cuộn lên đầu danh sách khi người dùng đổi Tab hoặc tìm kiếm
     LaunchedEffect(selectedTab) {
+        listState.scrollToItem(0)
+    }
+    LaunchedEffect(searchQuery) {
         listState.scrollToItem(0)
     }
 
@@ -67,7 +98,7 @@ fun WorldCompareScreen(
             .background(DarkBackground)
     ) {
         // -----------------------------------------------------------
-        // 1. THANH ĐIỀU HƯỚNG CỐ ĐỊNH TRÊN CÙNG (Sticky Nav)
+        // 1. THANH ĐIỀU HƯỚNG & TÌM KIẾM CỐ ĐỊNH TRÊN CÙNG (Sticky Nav)
         // Khi người dùng cuộn danh sách, phần này vẫn luôn hiển thị rõ ràng!
         // -----------------------------------------------------------
         Surface(
@@ -133,14 +164,39 @@ fun WorldCompareScreen(
                     }
                 }
 
-                // Dòng chú thích số lượng quốc gia & thời gian
-                Text(
-                    text = "Dữ liệu ${data.totalCountries} quốc gia • Cập nhật $displayDate",
-                    color = TextSecondaryDark,
-                    fontSize = 12.sp
+                // Hàng 2: Ô tìm kiếm quốc gia nhanh
+                OutlinedTextField(
+                    value = searchQuery,
+                    onValueChange = { searchQuery = it },
+                    modifier = Modifier.fillMaxWidth(),
+                    placeholder = {
+                        Text(
+                            text = "🔍 Tìm nhanh 170 nước (vd: Mỹ, Nhật, Lào, Đức...)",
+                            color = TextSecondaryDark,
+                            fontSize = 13.sp
+                        )
+                    },
+                    trailingIcon = {
+                        if (searchQuery.isNotEmpty()) {
+                            IconButton(onClick = { searchQuery = "" }) {
+                                Text("✕", color = TextSecondaryDark, fontSize = 14.sp, fontWeight = FontWeight.Bold)
+                            }
+                        }
+                    },
+                    singleLine = true,
+                    shape = RoundedCornerShape(12.dp),
+                    colors = OutlinedTextFieldDefaults.colors(
+                        focusedContainerColor = DarkSurface,
+                        unfocusedContainerColor = DarkSurface,
+                        focusedBorderColor = PetrolTeal,
+                        unfocusedBorderColor = DarkSurfaceVariant,
+                        focusedTextColor = TextPrimaryDark,
+                        unfocusedTextColor = TextPrimaryDark,
+                        cursorColor = PetrolTeal
+                    )
                 )
 
-                // Tab chuyển danh mục [ Đông Nam Á | Top Rẻ | Toàn Cầu ] CỐ ĐỊNH
+                // Hàng 3: Tab chuyển danh mục [ Đông Nam Á | Top Rẻ | Toàn Cầu ] CỐ ĐỊNH
                 PrimaryTabRow(
                     selectedTabIndex = selectedTab,
                     containerColor = DarkSurface,
@@ -200,78 +256,139 @@ fun WorldCompareScreen(
                 Spacer(modifier = Modifier.height(2.dp))
             }
 
-        // 4. Highlight Thẻ Việt Nam
-        item {
-            Card(
-                modifier = Modifier.fillMaxWidth(),
-                shape = RoundedCornerShape(16.dp),
-                colors = CardDefaults.cardColors(containerColor = DarkSurface),
-                border = androidx.compose.foundation.BorderStroke(1.dp, PetrolTeal.copy(alpha = 0.5f))
-            ) {
-                Row(
-                    modifier = Modifier.padding(16.dp),
-                    verticalAlignment = Alignment.CenterVertically
-                ) {
-                    Text(text = "🇻🇳", fontSize = 32.sp)
-                    Spacer(modifier = Modifier.width(12.dp))
-                    Column(modifier = Modifier.weight(1f)) {
-                        Text(
-                            text = "Việt Nam: Hạng ${data.vnRank} / ${data.totalCountries} quốc gia",
-                            color = TextPrimaryDark,
-                            fontSize = 15.sp,
-                            fontWeight = FontWeight.Bold
-                        )
-                        Text(
-                            text = "Giá xăng thuộc nhóm trung bình khu vực ASEAN",
-                            color = TextSecondaryDark,
-                            fontSize = 12.sp
-                        )
+            // 4. Highlight Thẻ Việt Nam (Chỉ hiện khi chưa tìm kiếm hoặc kết quả tìm kiếm có Việt Nam)
+            if (searchQuery.isBlank() || filteredCountries.any { it.isCurrent }) {
+                item {
+                    Card(
+                        modifier = Modifier.fillMaxWidth(),
+                        shape = RoundedCornerShape(16.dp),
+                        colors = CardDefaults.cardColors(containerColor = DarkSurface),
+                        border = androidx.compose.foundation.BorderStroke(1.dp, PetrolTeal.copy(alpha = 0.5f))
+                    ) {
+                        Row(
+                            modifier = Modifier.padding(16.dp),
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            Text(text = "🇻🇳", fontSize = 32.sp)
+                            Spacer(modifier = Modifier.width(12.dp))
+                            Column(modifier = Modifier.weight(1f)) {
+                                Text(
+                                    text = "Việt Nam: Hạng ${data.vnRank} / ${data.totalCountries} quốc gia",
+                                    color = TextPrimaryDark,
+                                    fontSize = 15.sp,
+                                    fontWeight = FontWeight.Bold
+                                )
+                                Text(
+                                    text = "Giá xăng thuộc nhóm trung bình khu vực ASEAN",
+                                    color = TextSecondaryDark,
+                                    fontSize = 12.sp
+                                )
+                            }
+                        }
                     }
                 }
             }
-        }
 
-        // 5. Thanh giải thích mini có thể bấm
-        item {
-            Surface(
-                color = PetrolTeal.copy(alpha = 0.1f),
-                shape = RoundedCornerShape(10.dp),
-                border = androidx.compose.foundation.BorderStroke(1.dp, PetrolTeal.copy(alpha = 0.25f)),
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .clickable { showInfoDialog = true }
-            ) {
-                Row(
-                    modifier = Modifier.padding(horizontal = 12.dp, vertical = 8.dp),
-                    verticalAlignment = Alignment.CenterVertically,
-                    horizontalArrangement = Arrangement.SpaceBetween
-                ) {
-                    Row(verticalAlignment = Alignment.CenterVertically) {
-                        Text(text = "⏱️", fontSize = 14.sp)
-                        Spacer(modifier = Modifier.width(6.dp))
-                        Text(
-                            text = "Quy đổi: Thời gian làm việc để mua 1L xăng",
-                            color = PetrolTeal,
-                            fontSize = 12.sp,
-                            fontWeight = FontWeight.SemiBold
-                        )
+            // 5. Thanh giải thích mini có thể bấm (Ẩn khi đang tìm kiếm)
+            if (searchQuery.isBlank()) {
+                item {
+                    Surface(
+                        color = PetrolTeal.copy(alpha = 0.1f),
+                        shape = RoundedCornerShape(10.dp),
+                        border = androidx.compose.foundation.BorderStroke(1.dp, PetrolTeal.copy(alpha = 0.25f)),
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .clickable { showInfoDialog = true }
+                    ) {
+                        Row(
+                            modifier = Modifier.padding(horizontal = 12.dp, vertical = 8.dp),
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.SpaceBetween
+                        ) {
+                            Row(verticalAlignment = Alignment.CenterVertically) {
+                                Text(text = "⏱️", fontSize = 14.sp)
+                                Spacer(modifier = Modifier.width(6.dp))
+                                Text(
+                                    text = "Quy đổi: Thời gian làm việc để mua 1L xăng",
+                                    color = PetrolTeal,
+                                    fontSize = 12.sp,
+                                    fontWeight = FontWeight.SemiBold
+                                )
+                            }
+                            Text(text = "Tìm hiểu ▾", color = PetrolTeal, fontSize = 11.sp)
+                        }
                     }
-                    Text(text = "Tìm hiểu ▾", color = PetrolTeal, fontSize = 11.sp)
                 }
             }
-        }
 
-        // 6. Danh sách các quốc gia
-        itemsIndexed(filteredCountries) { index, country ->
-            CountryFuelRow(
-                index = index + 1,
-                country = country,
-                maxPriceUsd = maxPriceUsd,
-                currency = selectedCurrency,
-                currencyFormat = currencyFormat,
-                onInfoClick = { showInfoDialog = true }
-            )
-        }
+            // Khi đang tìm kiếm: hiển thị số lượng kết quả
+            if (searchQuery.isNotBlank() && filteredCountries.isNotEmpty()) {
+                item {
+                    Text(
+                        text = "Kết quả tìm kiếm: ${filteredCountries.size} quốc gia",
+                        color = PetrolTeal,
+                        fontSize = 12.sp,
+                        fontWeight = FontWeight.SemiBold,
+                        modifier = Modifier.padding(horizontal = 4.dp, vertical = 2.dp)
+                    )
+                }
+            }
+
+            // 6. Trường hợp không tìm thấy quốc gia nào
+            if (filteredCountries.isEmpty()) {
+                item {
+                    Card(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(vertical = 24.dp),
+                        shape = RoundedCornerShape(16.dp),
+                        colors = CardDefaults.cardColors(containerColor = DarkSurface),
+                        border = androidx.compose.foundation.BorderStroke(1.dp, DarkSurfaceVariant)
+                    ) {
+                        Column(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(24.dp),
+                            horizontalAlignment = Alignment.CenterHorizontally
+                        ) {
+                            Text(text = "🔍", fontSize = 36.sp)
+                            Spacer(modifier = Modifier.height(10.dp))
+                            Text(
+                                text = "Không tìm thấy \"$searchQuery\"",
+                                color = TextPrimaryDark,
+                                fontSize = 16.sp,
+                                fontWeight = FontWeight.Bold
+                            )
+                            Spacer(modifier = Modifier.height(6.dp))
+                            Text(
+                                text = "Hãy thử tìm bằng tiếng Việt không dấu (my, nhat, duc...) hoặc mã nước",
+                                color = TextSecondaryDark,
+                                fontSize = 12.sp,
+                                textAlign = androidx.compose.ui.text.style.TextAlign.Center
+                            )
+                            Spacer(modifier = Modifier.height(14.dp))
+                            Button(
+                                onClick = { searchQuery = "" },
+                                colors = ButtonDefaults.buttonColors(containerColor = PetrolTeal)
+                            ) {
+                                Text("Xem lại danh sách", color = androidx.compose.ui.graphics.Color.Black, fontWeight = FontWeight.Bold)
+                            }
+                        }
+                    }
+                }
+            }
+
+            // 7. Danh sách các quốc gia
+            itemsIndexed(filteredCountries) { index, country ->
+                CountryFuelRow(
+                    index = index + 1,
+                    country = country,
+                    maxPriceUsd = maxPriceUsd,
+                    currency = selectedCurrency,
+                    currencyFormat = currencyFormat,
+                    onInfoClick = { showInfoDialog = true }
+                )
+            }
 
         item {
             Spacer(modifier = Modifier.height(80.dp)) // Tránh che banner đáy
@@ -362,6 +479,16 @@ fun formatDisplayDate(raw: String): String {
         } else raw
     } catch (e: Exception) {
         raw
+    }
+}
+
+fun removeVietnameseAccents(str: String): String {
+    return try {
+        val nfd = Normalizer.normalize(str, Normalizer.Form.NFD)
+        val pattern = Pattern.compile("\\p{InCombiningDiacriticalMarks}+")
+        pattern.matcher(nfd).replaceAll("").replace("đ", "d").replace("Đ", "D").lowercase().trim()
+    } catch (e: Exception) {
+        str.lowercase().trim()
     }
 }
 
