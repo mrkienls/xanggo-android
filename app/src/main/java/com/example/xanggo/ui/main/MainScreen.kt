@@ -148,6 +148,7 @@ fun MainScreen(
                     when (currentTab) {
                         0 -> VietnamFuelScreen(
                             data = state.vietnamData,
+                            worldData = state.worldData,
                             onNavigateToStations = { viewModel.selectTab(1) },
                             onNavigateToWorld = { viewModel.selectTab(2) }
                         )

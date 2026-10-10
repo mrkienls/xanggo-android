@@ -24,6 +24,7 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.ui.platform.LocalContext
 import com.example.xanggo.data.model.FuelItem
 import com.example.xanggo.data.model.VietnamFuelData
+import com.example.xanggo.data.model.WorldFuelSummary
 import com.example.xanggo.theme.*
 import com.example.xanggo.ui.components.LocationPinVector
 import com.example.xanggo.ui.components.PriceHistoryChartCard
@@ -35,6 +36,7 @@ import java.util.regex.Pattern
 @Composable
 fun VietnamFuelScreen(
     data: VietnamFuelData,
+    worldData: WorldFuelSummary? = null,
     onNavigateToStations: () -> Unit = {},
     onNavigateToWorld: () -> Unit = {}
 ) {
@@ -87,19 +89,22 @@ fun VietnamFuelScreen(
                         )
                     }
                 }
+                Spacer(modifier = Modifier.width(10.dp))
 
                 // Nút chọn Vùng 1 / Vùng 2 (Pill hiện đại với mũi tên chéo & chevron)
                 Surface(
                     color = PetrolTeal.copy(alpha = 0.12f),
                     shape = RoundedCornerShape(20.dp),
                     border = androidx.compose.foundation.BorderStroke(1.dp, PetrolTeal.copy(alpha = 0.5f)),
-                    modifier = Modifier.clickable { showZoneDialog = true }
+                    modifier = Modifier
+                        .weight(1f, fill = false)
+                        .clickable { showZoneDialog = true }
                 ) {
                     Row(
-                        modifier = Modifier.padding(horizontal = 12.dp, vertical = 6.dp),
+                        modifier = Modifier.padding(horizontal = 10.dp, vertical = 6.dp),
                         verticalAlignment = Alignment.CenterVertically
                     ) {
-                        Text(text = "↗ ", color = PetrolTeal, fontSize = 12.sp, fontWeight = FontWeight.Bold)
+                        Text(text = "↗ ", color = PetrolTeal, fontSize = 12.sp, fontWeight = FontWeight.Bold, maxLines = 1, softWrap = false)
                         Text(
                             text = if (selectedProvince.isNotEmpty()) selectedProvince
                                    else if (selectedZone == 1) "Vùng 1 (Giá chuẩn)"
@@ -109,13 +114,15 @@ fun VietnamFuelScreen(
                             fontSize = 12.sp,
                             maxLines = 1,
                             overflow = TextOverflow.Ellipsis,
-                            modifier = Modifier.widthIn(max = 140.dp)
+                            modifier = Modifier.weight(1f, fill = false)
                         )
                         Text(
                             text = " ›",
                             color = PetrolTeal,
                             fontSize = 14.sp,
-                            fontWeight = FontWeight.Bold
+                            fontWeight = FontWeight.Bold,
+                            maxLines = 1,
+                            softWrap = false
                         )
                     }
                 }
@@ -133,13 +140,17 @@ fun VietnamFuelScreen(
                     text = "🕒 Cập nhật: ${data.updatedAt}",
                     color = TextSecondaryDark,
                     fontSize = 11.sp,
-                    maxLines = 1
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis,
+                    modifier = Modifier.weight(1f, fill = false)
                 )
+                Spacer(modifier = Modifier.width(8.dp))
                 Text(
                     text = "Nguồn: Petrolimex",
                     color = TextSecondaryDark,
                     fontSize = 11.sp,
-                    maxLines = 1
+                    maxLines = 1,
+                    softWrap = false
                 )
             }
         }
@@ -171,36 +182,27 @@ fun VietnamFuelScreen(
                 Column(modifier = Modifier.padding(18.dp)) {
                     Row(
                         modifier = Modifier.fillMaxWidth(),
-                        horizontalArrangement = Arrangement.SpaceBetween,
                         verticalAlignment = Alignment.CenterVertically
                     ) {
-                        Row(
-                            modifier = Modifier.weight(1f, fill = false),
-                            verticalAlignment = Alignment.CenterVertically
+                        Surface(
+                            color = PetrolTeal.copy(alpha = 0.18f),
+                            shape = RoundedCornerShape(8.dp)
                         ) {
-                            Surface(
-                                color = PetrolTeal.copy(alpha = 0.18f),
-                                shape = RoundedCornerShape(8.dp)
-                            ) {
-                                Text(
-                                    text = "⛽",
-                                    fontSize = 14.sp,
-                                    modifier = Modifier.padding(horizontal = 6.dp, vertical = 4.dp)
-                                )
-                            }
-                            Spacer(modifier = Modifier.width(8.dp))
                             Text(
-                                text = heroItem.name,
-                                color = TextPrimaryDark,
-                                fontSize = 16.sp,
-                                fontWeight = FontWeight.Bold,
-                                maxLines = 1,
-                                overflow = TextOverflow.Ellipsis
+                                text = "⛽",
+                                fontSize = 14.sp,
+                                modifier = Modifier.padding(horizontal = 6.dp, vertical = 4.dp)
                             )
                         }
-
-                        // Badge Tăng / Giảm giá kèm %
-                        DeltaPriceBadge(delta = heroItem.delta, percent = deltaPercent)
+                        Spacer(modifier = Modifier.width(8.dp))
+                        Text(
+                            text = heroItem.name,
+                            color = TextPrimaryDark,
+                            fontSize = 16.sp,
+                            fontWeight = FontWeight.Bold,
+                            maxLines = 1,
+                            overflow = TextOverflow.Ellipsis
+                        )
                     }
 
                     Spacer(modifier = Modifier.height(10.dp))
@@ -210,15 +212,24 @@ fun VietnamFuelScreen(
                             text = currencyFormat.format(currentPrice),
                             color = TextPrimaryDark,
                             fontSize = 36.sp,
-                            fontWeight = FontWeight.ExtraBold
+                            fontWeight = FontWeight.ExtraBold,
+                            maxLines = 1,
+                            softWrap = false
                         )
                         Text(
                             text = " đ/lít",
                             color = TextSecondaryDark,
                             fontSize = 16.sp,
+                            maxLines = 1,
+                            softWrap = false,
                             modifier = Modifier.padding(bottom = 5.dp, start = 4.dp)
                         )
                     }
+
+                    Spacer(modifier = Modifier.height(6.dp))
+
+                    // Badge Tăng / Giảm giá kèm %
+                    DeltaPriceBadge(delta = heroItem.delta, percent = deltaPercent)
 
                     Spacer(modifier = Modifier.height(8.dp))
 
@@ -284,12 +295,17 @@ fun VietnamFuelScreen(
         }
 
         // 5. Vị trí AdMob Native Ad (Theo kế hoạch đã phê duyệt)
-        item {
-            AdMobNativePlaceholder()
-        }
+        // Tạm ẩn: placeholder đang hiển thị ưu đãi giả. Bật lại khi gắn Native Ad thật.
+        // item {
+        //     AdMobNativePlaceholder()
+        // }
 
-        // 6. Thẻ Xem nhanh So sánh ASEAN (CTA sang màn hình 2)
-        item {
+        // 6. Thẻ Xem nhanh So sánh ASEAN (CTA sang màn hình 2) - dùng dữ liệu thật từ tab Thế Giới
+        val asean = worldData?.countries?.filter { it.region == "ASEAN" }.orEmpty()
+        val vn = asean.firstOrNull { it.isCurrent }
+        val cheapest = asean.filter { !it.isCurrent }.minByOrNull { it.priceVnd }
+        val priciest = asean.filter { !it.isCurrent }.maxByOrNull { it.priceVnd }
+        if (vn != null && cheapest != null && priciest != null) item {
             Card(
                 modifier = Modifier
                     .fillMaxWidth()
@@ -311,11 +327,12 @@ fun VietnamFuelScreen(
                             Text(text = "🌍", fontSize = 18.sp)
                             Spacer(modifier = Modifier.width(8.dp))
                             Text(
-                                text = "So sánh giá ASEAN",
+                                text = "So sánh ASEAN",
                                 color = TextPrimaryDark,
                                 fontWeight = FontWeight.Bold,
                                 fontSize = 15.sp,
-                                maxLines = 1
+                                maxLines = 1,
+                                overflow = TextOverflow.Ellipsis
                             )
                         }
 
@@ -340,25 +357,46 @@ fun VietnamFuelScreen(
 
                     Spacer(modifier = Modifier.height(10.dp))
 
-                    // Bảng 3 cột trực quan & chuyên nghiệp
-                    Row(
-                        modifier = Modifier.fillMaxWidth(),
-                        horizontalArrangement = Arrangement.SpaceBetween
-                    ) {
-                        Column {
-                            Text(text = "🇻🇳 Việt Nam", color = TextSecondaryDark, fontSize = 11.sp)
-                            Spacer(modifier = Modifier.height(2.dp))
-                            Text(text = "28.250 đ", color = TextPrimaryDark, fontSize = 13.sp, fontWeight = FontWeight.SemiBold)
-                        }
-                        Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                            Text(text = "🇲🇾 Malaysia", color = TextSecondaryDark, fontSize = 11.sp)
-                            Spacer(modifier = Modifier.height(2.dp))
-                            Text(text = "11.380 đ", color = PriceGreen, fontSize = 13.sp, fontWeight = FontWeight.SemiBold)
-                        }
-                        Column(horizontalAlignment = Alignment.End) {
-                            Text(text = "🇹🇭 Thái Lan", color = TextSecondaryDark, fontSize = 11.sp)
-                            Spacer(modifier = Modifier.height(2.dp))
-                            Text(text = "29.750 đ", color = PriceRed, fontSize = 13.sp, fontWeight = FontWeight.SemiBold)
+                    // Bảng 3 cột: Việt Nam | Rẻ nhất ASEAN | Đắt nhất ASEAN
+                    Row(modifier = Modifier.fillMaxWidth()) {
+                        listOf(
+                            Triple(vn, "Việt Nam", TextPrimaryDark),
+                            Triple(cheapest, "Rẻ nhất", PriceGreen),
+                            Triple(priciest, "Đắt nhất", PriceRed)
+                        ).forEachIndexed { i, (country, label, color) ->
+                            Column(
+                                modifier = Modifier.weight(1f),
+                                horizontalAlignment = when (i) {
+                                    0 -> Alignment.Start
+                                    1 -> Alignment.CenterHorizontally
+                                    else -> Alignment.End
+                                }
+                            ) {
+                                Text(
+                                    text = "${country.flag} ${if (i == 0) label else country.name}",
+                                    color = TextSecondaryDark,
+                                    fontSize = 11.sp,
+                                    maxLines = 1,
+                                    overflow = TextOverflow.Ellipsis
+                                )
+                                Spacer(modifier = Modifier.height(2.dp))
+                                Text(
+                                    text = "${currencyFormat.format(country.priceVnd)} đ",
+                                    color = color,
+                                    fontSize = 13.sp,
+                                    fontWeight = FontWeight.SemiBold,
+                                    maxLines = 1,
+                                    softWrap = false
+                                )
+                                if (i > 0) {
+                                    Text(
+                                        text = label,
+                                        color = TextSecondaryDark.copy(alpha = 0.7f),
+                                        fontSize = 10.sp,
+                                        maxLines = 1
+                                    )
+                                }
+                            }
                         }
                     }
                 }
@@ -366,7 +404,7 @@ fun VietnamFuelScreen(
         }
 
         item {
-            Spacer(modifier = Modifier.height(110.dp)) // Tránh che banner đáy
+            Spacer(modifier = Modifier.height(16.dp))
         }
     }
 
@@ -486,29 +524,20 @@ fun DeltaPriceBadge(delta: Int, percent: Double? = null, isCompact: Boolean = fa
         shape = RoundedCornerShape(12.dp)
     ) {
         if (percent != null && !isCompact) {
-            Column(
-                modifier = Modifier.padding(horizontal = 10.dp, vertical = 5.dp),
-                horizontalAlignment = Alignment.CenterHorizontally
-            ) {
-                Text(
-                    text = if (isRaise) "▲ +${delta} đ/lít" else if (isDrop) "▼ ${delta} đ/lít" else "Không đổi",
-                    color = textColor,
-                    fontSize = 12.sp,
-                    fontWeight = FontWeight.Bold,
-                    maxLines = 1,
-                    softWrap = false
-                )
-                Text(
-                    text = if (isRaise) "(+${String.format(Locale.GERMANY, "%.1f", percent)}%)"
-                           else if (isDrop) "(${String.format(Locale.GERMANY, "%.1f", percent)}%)"
-                           else "(0,0%)",
-                    color = textColor.copy(alpha = 0.85f),
-                    fontSize = 11.sp,
-                    fontWeight = FontWeight.SemiBold,
-                    maxLines = 1,
-                    softWrap = false
-                )
-            }
+            val pctText = String.format(Locale.GERMANY, "%.1f", kotlin.math.abs(percent))
+            Text(
+                text = when {
+                    isRaise -> "▲ +${delta}đ · +$pctText%"
+                    isDrop -> "▼ ${-delta}đ · -$pctText%"
+                    else -> "Không đổi"
+                },
+                color = textColor,
+                fontSize = 12.sp,
+                fontWeight = FontWeight.Bold,
+                maxLines = 1,
+                softWrap = false,
+                modifier = Modifier.padding(horizontal = 10.dp, vertical = 5.dp)
+            )
         } else {
             val text = when {
                 isDrop -> if (isCompact) "▼ ${-delta}đ" else "▼ Giảm ${-delta} đ/lít"
@@ -932,39 +961,11 @@ fun NearbyFuelRadarCard(
                             overflow = TextOverflow.Ellipsis
                         )
                         Text(
-                            text = "Dẫn đường 1-chạm thông minh",
+                            text = "Mở Google Maps chỉ đường 1 chạm",
                             color = TextSecondaryDark,
                             fontSize = 11.sp,
                             maxLines = 1,
                             overflow = TextOverflow.Ellipsis
-                        )
-                    }
-                }
-
-                Spacer(modifier = Modifier.width(8.dp))
-
-                Surface(
-                    color = PriceGreen.copy(alpha = 0.15f),
-                    shape = RoundedCornerShape(12.dp)
-                ) {
-                    Row(
-                        modifier = Modifier.padding(horizontal = 8.dp, vertical = 3.dp),
-                        verticalAlignment = Alignment.CenterVertically
-                    ) {
-                        Box(
-                            modifier = Modifier
-                                .size(6.dp)
-                                .clip(CircleShape)
-                                .background(PriceGreen)
-                        )
-                        Spacer(modifier = Modifier.width(5.dp))
-                        Text(
-                            text = "Vệ tinh GPS",
-                            color = PriceGreen,
-                            fontSize = 10.5.sp,
-                            fontWeight = FontWeight.SemiBold,
-                            maxLines = 1,
-                            softWrap = false
                         )
                     }
                 }

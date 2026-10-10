@@ -208,36 +208,6 @@ fun GasStationScreen() {
                         )
                     }
                 }
-
-                Spacer(modifier = Modifier.width(8.dp))
-
-                // Huy hiệu GPS Sẵn sàng
-                Surface(
-                    color = PriceGreen.copy(alpha = 0.15f),
-                    shape = RoundedCornerShape(14.dp),
-                    border = androidx.compose.foundation.BorderStroke(1.dp, PriceGreen.copy(alpha = 0.4f))
-                ) {
-                    Row(
-                        modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp),
-                        verticalAlignment = Alignment.CenterVertically
-                    ) {
-                        Box(
-                            modifier = Modifier
-                                .size(6.dp)
-                                .clip(CircleShape)
-                                .background(PriceGreen)
-                        )
-                        Spacer(modifier = Modifier.width(5.dp))
-                        Text(
-                            text = "GPS Sẵn sàng",
-                            color = PriceGreen,
-                            fontSize = 11.sp,
-                            fontWeight = FontWeight.SemiBold,
-                            maxLines = 1,
-                            softWrap = false
-                        )
-                    }
-                }
             }
         }
 
@@ -249,9 +219,11 @@ fun GasStationScreen() {
                 modifier = Modifier.fillMaxWidth(),
                 placeholder = {
                     Text(
-                        text = "🔍 Tìm theo quận, đường, tên cây xăng...",
+                        text = "🔍 Quận, đường, tên cây xăng…",
                         color = TextSecondaryDark,
-                        fontSize = 13.sp
+                        fontSize = 13.sp,
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis
                     )
                 },
                 trailingIcon = {
@@ -314,7 +286,7 @@ fun GasStationScreen() {
                         Spacer(modifier = Modifier.width(10.dp))
                         Column(modifier = Modifier.weight(1f)) {
                             Text(
-                                text = "Tìm Trạm Xăng Gần Bạn",
+                                text = "Trạm gần bạn",
                                 color = TextPrimaryDark,
                                 fontSize = 15.sp,
                                 fontWeight = FontWeight.Bold,
@@ -322,7 +294,7 @@ fun GasStationScreen() {
                                 overflow = TextOverflow.Ellipsis
                             )
                             Text(
-                                text = "Xem giá & chỉ đường đến trạm gần nhất",
+                                text = "Chỉ đường 1 chạm",
                                 color = TextSecondaryDark,
                                 fontSize = 11.sp,
                                 maxLines = 1,
@@ -491,15 +463,6 @@ fun GasStationScreen() {
                                     drawCircle(color = PetrolTeal, radius = 5f, center = Offset(w * 0.78f, h * 0.35f))
                                     drawCircle(color = PetrolTeal, radius = 5f, center = Offset(w * 0.82f, h * 0.72f))
                                 }
-                                Text(
-                                    text = "GPS LIVE",
-                                    color = PetrolTeal.copy(alpha = 0.8f),
-                                    fontSize = 8.sp,
-                                    fontWeight = FontWeight.Bold,
-                                    modifier = Modifier
-                                        .align(Alignment.BottomStart)
-                                        .padding(4.dp)
-                                )
                             }
 
                             Spacer(modifier = Modifier.width(12.dp))
@@ -515,7 +478,7 @@ fun GasStationScreen() {
                                     )
                                     Spacer(modifier = Modifier.width(5.dp))
                                     Text(
-                                        text = "Gần bạn nhất: 0.8 km • 3 phút",
+                                        text = "Cây xăng gần nhất",
                                         color = TextPrimaryDark,
                                         fontSize = 11.5.sp,
                                         fontWeight = FontWeight.Bold,
@@ -528,7 +491,7 @@ fun GasStationScreen() {
                                     Text(text = "🧭", fontSize = 11.sp)
                                     Spacer(modifier = Modifier.width(4.dp))
                                     Text(
-                                        text = "Chỉ đường: Lộ trình Google Maps",
+                                        text = "Mở Google Maps",
                                         color = PetrolTeal,
                                         fontSize = 10.5.sp,
                                         fontWeight = FontWeight.SemiBold,
@@ -559,22 +522,31 @@ fun GasStationScreen() {
                 horizontalArrangement = Arrangement.SpaceBetween,
                 verticalAlignment = Alignment.CenterVertically
             ) {
-                Row(verticalAlignment = Alignment.CenterVertically) {
+                Row(
+                    modifier = Modifier.weight(1f, fill = false),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
                     Text(text = "🔥", fontSize = 16.sp)
                     Spacer(modifier = Modifier.width(6.dp))
                     Text(
-                        text = "Trạm xăng gần bạn (${filteredStations.size})",
+                        text = "Gần bạn (${filteredStations.size})",
                         color = TextPrimaryDark,
                         fontSize = 15.sp,
-                        fontWeight = FontWeight.Bold
+                        fontWeight = FontWeight.Bold,
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis
                     )
                 }
 
+                Spacer(modifier = Modifier.width(8.dp))
+
                 Text(
-                    text = "Mở tất cả trên Maps →",
+                    text = "Xem trên Maps →",
                     color = PetrolTeal,
-                    fontSize = 11.sp,
+                    fontSize = 12.sp,
                     fontWeight = FontWeight.SemiBold,
+                    maxLines = 1,
+                    softWrap = false,
                     modifier = Modifier.clickable {
                         openMapsSearchDirect(context, "cây xăng gần đây")
                     }

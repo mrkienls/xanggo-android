@@ -4,7 +4,7 @@ import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
-import androidx.compose.foundation.gestures.detectDragGestures
+import androidx.compose.foundation.gestures.detectHorizontalDragGestures
 import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.CircleShape
@@ -94,17 +94,19 @@ fun PriceHistoryChartCard(
                     Spacer(modifier = Modifier.width(8.dp))
                     Column {
                         Text(
-                            text = "Lịch Sử Biến Động Giá",
+                            text = "Lịch Sử Giá",
                             color = TextPrimaryDark,
                             fontSize = 15.sp,
                             fontWeight = FontWeight.Bold,
-                            maxLines = 1
+                            maxLines = 1,
+                            overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis
                         )
                         Text(
-                            text = "${history.size} kỳ điều hành gần nhất",
+                            text = "${history.size} kỳ gần nhất",
                             color = TextSecondaryDark,
                             fontSize = 11.sp,
-                            maxLines = 1
+                            maxLines = 1,
+                            overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis
                         )
                     }
                 }
@@ -252,13 +254,18 @@ fun PriceHistoryChartCard(
                     horizontalArrangement = Arrangement.SpaceBetween,
                     verticalAlignment = Alignment.CenterVertically
                 ) {
-                    Row(verticalAlignment = Alignment.CenterVertically) {
+                    Row(
+                        modifier = Modifier.weight(1f, fill = false),
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
                         Text(text = "💡", fontSize = 13.sp)
                         Spacer(modifier = Modifier.width(8.dp))
                         Text(
-                            text = "Chạm vào điểm trên biểu đồ để xem chi tiết từng kỳ",
+                            text = "Chạm hoặc vuốt ngang để xem từng kỳ",
                             color = TextSecondaryDark,
-                            fontSize = 11.sp
+                            fontSize = 11.sp,
+                            maxLines = 1,
+                            overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis
                         )
                     }
                     Text(text = "›", color = TextSecondaryDark, fontSize = 14.sp, fontWeight = FontWeight.Bold)
@@ -343,7 +350,7 @@ fun SmoothSplineChart(
                     }
                 }
                 .pointerInput(points) {
-                    detectDragGestures { change, _ ->
+                    detectHorizontalDragGestures { change, _ ->
                         change.consume()
                         val yAxisWidth = 42.dp.toPx()
                         val chartWidth = size.width - yAxisWidth

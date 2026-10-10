@@ -157,22 +157,20 @@ fun WorldCompareScreen(
 
                         Spacer(modifier = Modifier.width(8.dp))
 
-                        Row(verticalAlignment = Alignment.CenterVertically) {
-                            Text(
-                                text = "Giá Xăng ",
-                                color = TextPrimaryDark,
-                                fontSize = 17.sp,
-                                fontWeight = FontWeight.Bold,
-                                maxLines = 1
-                            )
-                            Text(
-                                text = "Thế Giới",
-                                color = PetrolTeal,
-                                fontSize = 17.sp,
-                                fontWeight = FontWeight.Bold,
-                                maxLines = 1
-                            )
-                        }
+                        Text(
+                            text = androidx.compose.ui.text.buildAnnotatedString {
+                                append("Xăng ")
+                                pushStyle(androidx.compose.ui.text.SpanStyle(color = PetrolTeal))
+                                append("Thế Giới")
+                                pop()
+                            },
+                            color = TextPrimaryDark,
+                            fontSize = 17.sp,
+                            fontWeight = FontWeight.Bold,
+                            maxLines = 1,
+                            overflow = TextOverflow.Ellipsis,
+                            modifier = Modifier.weight(1f, fill = false)
+                        )
 
                         Spacer(modifier = Modifier.width(3.dp))
 
@@ -222,9 +220,11 @@ fun WorldCompareScreen(
                     modifier = Modifier.fillMaxWidth(),
                     placeholder = {
                         Text(
-                            text = "🔍 Tìm nhanh 170 nước (vd: Mỹ, Nhật, Lào, Đức...)",
+                            text = "🔍 Tìm nước: Mỹ, Nhật, Lào…",
                             color = TextSecondaryDark,
-                            fontSize = 13.sp
+                            fontSize = 13.sp,
+                            maxLines = 1,
+                            overflow = TextOverflow.Ellipsis
                         )
                     },
                     trailingIcon = {
@@ -247,46 +247,32 @@ fun WorldCompareScreen(
                     )
                 )
 
-                // Hàng 3: Tab chuyển danh mục [ Đông Nam Á | Top Rẻ | Toàn Cầu ] CỐ ĐỊNH
+                // Hàng 3: Tab chuyển danh mục [ ASEAN | Rẻ nhất | Tất cả ] CỐ ĐỊNH
                 PrimaryTabRow(
                     selectedTabIndex = selectedTab,
                     containerColor = DarkSurface,
                     contentColor = PetrolTeal,
                     modifier = Modifier.clip(RoundedCornerShape(12.dp))
                 ) {
-                    Tab(
-                        selected = selectedTab == 0,
-                        onClick = { selectedTab = 0 },
-                        text = {
-                            Text(
-                                text = "Đông Nam Á (${aseanCountries.size})",
-                                fontSize = 12.sp,
-                                fontWeight = if (selectedTab == 0) FontWeight.Bold else FontWeight.Normal
-                            )
-                        }
-                    )
-                    Tab(
-                        selected = selectedTab == 1,
-                        onClick = { selectedTab = 1 },
-                        text = {
-                            Text(
-                                text = "Top Rẻ Nhất",
-                                fontSize = 12.sp,
-                                fontWeight = if (selectedTab == 1) FontWeight.Bold else FontWeight.Normal
-                            )
-                        }
-                    )
-                    Tab(
-                        selected = selectedTab == 2,
-                        onClick = { selectedTab = 2 },
-                        text = {
-                            Text(
-                                text = "Toàn Cầu (${allCountries.size})",
-                                fontSize = 12.sp,
-                                fontWeight = if (selectedTab == 2) FontWeight.Bold else FontWeight.Normal
-                            )
-                        }
-                    )
+                    listOf(
+                        "ASEAN (${aseanCountries.size})",
+                        "Rẻ nhất",
+                        "Tất cả (${allCountries.size})"
+                    ).forEachIndexed { i, label ->
+                        Tab(
+                            selected = selectedTab == i,
+                            onClick = { selectedTab = i },
+                            text = {
+                                Text(
+                                    text = label,
+                                    fontSize = 12.sp,
+                                    fontWeight = if (selectedTab == i) FontWeight.Bold else FontWeight.Normal,
+                                    maxLines = 1,
+                                    softWrap = false
+                                )
+                            }
+                        )
+                    }
                 }
             }
         }
@@ -363,7 +349,7 @@ fun WorldCompareScreen(
                                 Text(text = "⏱️", fontSize = 14.sp)
                                 Spacer(modifier = Modifier.width(6.dp))
                                 Text(
-                                    text = "Quy đổi: Thời gian làm việc / 1L",
+                                    text = "Phút lao động / 1 lít",
                                     color = PetrolTeal,
                                     fontSize = 12.sp,
                                     fontWeight = FontWeight.SemiBold,
