@@ -17,6 +17,7 @@ import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation3.runtime.NavKey
 import com.example.xanggo.data.DefaultFuelRepository
 import com.example.xanggo.theme.*
+import com.example.xanggo.ui.stations.GasStationScreen
 import com.example.xanggo.ui.vietnam.VietnamFuelScreen
 import com.example.xanggo.ui.world.WorldCompareScreen
 
@@ -37,7 +38,7 @@ fun MainScreen(
                 // 1. Google AdMob Banner thích ứng (Chân trang cố định)
                 com.example.xanggo.ui.ads.AdMobBanner()
 
-                // 2. Bottom Navigation Bar
+                // 2. Bottom Navigation Bar (3 Tab chuẩn: Giá Xăng | Tìm Trạm | Thế Giới)
                 NavigationBar(
                     containerColor = DarkSurface,
                     contentColor = TextPrimaryDark,
@@ -50,7 +51,7 @@ fun MainScreen(
                         label = {
                             Text(
                                 text = "Giá Xăng",
-                                fontSize = 12.sp,
+                                fontSize = 11.sp,
                                 fontWeight = if (currentTab == 0) FontWeight.Bold else FontWeight.Normal
                             )
                         },
@@ -65,12 +66,31 @@ fun MainScreen(
                     NavigationBarItem(
                         selected = currentTab == 1,
                         onClick = { viewModel.selectTab(1) },
-                        icon = { Text(text = "🌍", fontSize = 20.sp) },
+                        icon = { Text(text = "📍", fontSize = 20.sp) },
+                        label = {
+                            Text(
+                                text = "Tìm Trạm Xăng",
+                                fontSize = 11.sp,
+                                fontWeight = if (currentTab == 1) FontWeight.Bold else FontWeight.Normal
+                            )
+                        },
+                        colors = NavigationBarItemDefaults.colors(
+                            selectedIconColor = PetrolTeal,
+                            selectedTextColor = PetrolTeal,
+                            indicatorColor = PetrolTeal.copy(alpha = 0.2f),
+                            unselectedTextColor = TextSecondaryDark
+                        )
+                    )
+
+                    NavigationBarItem(
+                        selected = currentTab == 2,
+                        onClick = { viewModel.selectTab(2) },
+                        icon = { Text(text = "🌐", fontSize = 20.sp) },
                         label = {
                             Text(
                                 text = "Thế Giới",
-                                fontSize = 12.sp,
-                                fontWeight = if (currentTab == 1) FontWeight.Bold else FontWeight.Normal
+                                fontSize = 11.sp,
+                                fontWeight = if (currentTab == 2) FontWeight.Bold else FontWeight.Normal
                             )
                         },
                         colors = NavigationBarItemDefaults.colors(
@@ -99,13 +119,14 @@ fun MainScreen(
                     }
                 }
                 is MainUiState.Success -> {
-                    if (currentTab == 0) {
-                        VietnamFuelScreen(
+                    when (currentTab) {
+                        0 -> VietnamFuelScreen(
                             data = state.vietnamData,
-                            onNavigateToWorld = { viewModel.selectTab(1) }
+                            onNavigateToStations = { viewModel.selectTab(1) },
+                            onNavigateToWorld = { viewModel.selectTab(2) }
                         )
-                    } else {
-                        WorldCompareScreen(
+                        1 -> GasStationScreen()
+                        else -> WorldCompareScreen(
                             data = state.worldData
                         )
                     }

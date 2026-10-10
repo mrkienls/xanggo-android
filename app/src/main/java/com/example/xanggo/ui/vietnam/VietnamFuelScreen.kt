@@ -33,6 +33,7 @@ import java.util.regex.Pattern
 @Composable
 fun VietnamFuelScreen(
     data: VietnamFuelData,
+    onNavigateToStations: () -> Unit = {},
     onNavigateToWorld: () -> Unit = {}
 ) {
     val context = LocalContext.current
@@ -265,7 +266,10 @@ fun VietnamFuelScreen(
 
         // 4. Thẻ Trạm xăng quanh bạn (Smart Fuel Radar - 1 Chạm dẫn đường)
         item {
-            NearbyFuelRadarCard(context = context)
+            NearbyFuelRadarCard(
+                context = context,
+                onViewMore = onNavigateToStations
+            )
         }
 
         // 5. Vị trí AdMob Native Ad (Theo kế hoạch đã phê duyệt)
@@ -850,6 +854,7 @@ fun removeAccents(str: String): String {
 @Composable
 fun NearbyFuelRadarCard(
     context: Context,
+    onViewMore: () -> Unit = {},
     modifier: Modifier = Modifier
 ) {
     Card(
