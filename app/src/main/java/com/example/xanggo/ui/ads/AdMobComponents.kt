@@ -27,6 +27,7 @@ fun AdMobBanner(
     modifier: Modifier = Modifier,
     adUnitId: String = AdMobConfig.BANNER_AD_UNIT_ID
 ) {
+    if (!com.example.xanggo.BuildConfig.ADS_ENABLED) return
     // Chỉ chiếm chỗ khi quảng cáo tải thành công, tránh dải đen trống 50dp khi mất mạng / không có ad
     var isLoaded by remember { mutableStateOf(false) }
 

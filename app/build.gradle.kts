@@ -25,6 +25,7 @@ android {
         // ID test chính thức của Google cho bản debug
         manifestPlaceholders["admobAppId"] = "ca-app-pub-3940256099942544~3347511713"
         buildConfigField("String", "ADMOB_BANNER_ID", "\"ca-app-pub-3940256099942544/6300978111\"")
+        buildConfigField("boolean", "ADS_ENABLED", "true")
     }
 
     // Khoá ký (upload key) đọc từ keystore.properties ở thư mục gốc - file này KHÔNG commit lên git
@@ -53,7 +54,8 @@ android {
                 manifestPlaceholders["admobAppId"] = admobAppId
                 buildConfigField("String", "ADMOB_BANNER_ID", "\"$admobBannerId\"")
             } else {
-                logger.warn("⚠️  XăngGo: chưa có admobAppId/admobBannerId trong keystore.properties -> bản release đang dùng ID QUẢNG CÁO TEST")
+                buildConfigField("boolean", "ADS_ENABLED", "false")
+                logger.warn("ℹ️  XăngGo: chưa có admobAppId/admobBannerId trong keystore.properties -> bản release TẮT quảng cáo")
             }
         }
     }
