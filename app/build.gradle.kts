@@ -86,4 +86,7 @@ dependencies {
   // Firebase Cloud Firestore
   implementation(platform(libs.firebase.bom))
   implementation(libs.firebase.firestore)
+
+  // Google Mobile Ads (AdMob)
+  implementation(libs.google.play.services.ads)
 }

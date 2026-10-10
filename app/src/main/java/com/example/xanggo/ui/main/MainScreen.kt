@@ -34,8 +34,8 @@ fun MainScreen(
         containerColor = DarkBackground,
         bottomBar = {
             Column(modifier = Modifier.background(DarkBackground)) {
-                // 1. Vị trí AdMob Adaptive Banner (Chân trang cố định)
-                AdMobAdaptiveBannerPlaceholder()
+                // 1. Google AdMob Banner thích ứng (Chân trang cố định)
+                com.example.xanggo.ui.ads.AdMobBanner()
 
                 // 2. Bottom Navigation Bar
                 NavigationBar(

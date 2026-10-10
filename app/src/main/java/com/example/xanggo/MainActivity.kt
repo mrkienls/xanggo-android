@@ -9,14 +9,25 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.ui.Modifier
 import com.example.xanggo.theme.XangGoTheme
+import com.google.android.gms.ads.MobileAds
 
 class MainActivity : ComponentActivity() {
   override fun onCreate(savedInstanceState: Bundle?) {
     super.onCreate(savedInstanceState)
 
+    // Khởi tạo Google Mobile Ads SDK
+    MobileAds.initialize(this) {}
+
     enableEdgeToEdge()
     setContent {
-      XangGoTheme { Surface(modifier = Modifier.fillMaxSize(), color = MaterialTheme.colorScheme.background) { MainNavigation() } }
+      XangGoTheme {
+        Surface(
+          modifier = Modifier.fillMaxSize(),
+          color = MaterialTheme.colorScheme.background
+        ) {
+          MainNavigation()
+        }
+      }
     }
   }
 }
