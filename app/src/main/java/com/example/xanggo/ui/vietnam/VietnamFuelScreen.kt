@@ -372,7 +372,13 @@ fun AdMobNativePlaceholder() {
     }
 }
 
-data class ProvinceZoneItem(val name: String, val zone: Int, val description: String)
+data class ProvinceZoneItem(
+    val name: String,
+    val zone: Int,
+    val description: String,
+    val subNote: String = "",
+    val aliases: String = ""
+)
 
 @Composable
 fun ZoneSelectionDialog(
@@ -385,80 +391,60 @@ fun ZoneSelectionDialog(
 
     val allProvinces = remember {
         listOf(
-            // Vùng 2: 16 tỉnh miền núi, Tây Nguyên & hải đảo (+2%)
-            ProvinceZoneItem("Hà Giang", 2, "Miền núi phía Bắc (+2%)"),
-            ProvinceZoneItem("Cao Bằng", 2, "Miền núi phía Bắc (+2%)"),
-            ProvinceZoneItem("Bắc Kạn", 2, "Miền núi phía Bắc (+2%)"),
-            ProvinceZoneItem("Lạng Sơn", 2, "Miền núi phía Bắc (+2%)"),
-            ProvinceZoneItem("Tuyên Quang", 2, "Miền núi phía Bắc (+2%)"),
-            ProvinceZoneItem("Lào Cai", 2, "Miền núi phía Bắc (+2%)"),
-            ProvinceZoneItem("Yên Bái", 2, "Miền núi phía Bắc (+2%)"),
-            ProvinceZoneItem("Điện Biên", 2, "Miền núi Tây Bắc (+2%)"),
-            ProvinceZoneItem("Lai Châu", 2, "Miền núi Tây Bắc (+2%)"),
-            ProvinceZoneItem("Sơn La", 2, "Miền núi Tây Bắc (+2%)"),
-            ProvinceZoneItem("Hòa Bình", 2, "Miền núi phía Bắc (+2%)"),
-            ProvinceZoneItem("Kon Tum", 2, "Tây Nguyên (+2%)"),
-            ProvinceZoneItem("Gia Lai", 2, "Tây Nguyên (+2%)"),
-            ProvinceZoneItem("Đắk Lắk", 2, "Tây Nguyên (+2%)"),
-            ProvinceZoneItem("Đắk Nông", 2, "Tây Nguyên (+2%)"),
-            ProvinceZoneItem("Lâm Đồng", 2, "Tây Nguyên (+2%)"),
-            ProvinceZoneItem("Phú Quốc / Côn Đảo", 2, "Hải đảo xa xôi (+2%)"),
+            // 6 THÀNH PHỐ TRỰC THUỘC TRUNG ƯƠNG
+            ProvinceZoneItem("TP. Hà Nội", 1, "Thủ đô, tổng kho Đức Giang (Giá chuẩn)", "Thủ đô", "ha noi"),
+            ProvinceZoneItem("TP. Hồ Chí Minh", 1, "Đô thị lớn, tổng kho Nhà Bè (Giá chuẩn)", "Gồm TP.HCM, Bình Dương, Bà Rịa - Vũng Tàu", "tphcm sai gon binh duong vung tau"),
+            ProvinceZoneItem("TP. Hải Phòng", 1, "Thành phố cảng, kho xăng dầu B12 (Giá chuẩn)", "Gồm Hải Phòng, Hải Dương", "hai phong hai duong"),
+            ProvinceZoneItem("TP. Đà Nẵng", 1, "Tổng kho Nước Mặn, Liên Chiểu (Giá chuẩn)", "Gồm Đà Nẵng, Quảng Nam", "da nang quang nam hoi an"),
+            ProvinceZoneItem("TP. Cần Thơ", 1, "Trung tâm ĐBSCL, tổng kho Miền Tây (Giá chuẩn)", "Gồm Cần Thơ, Hậu Giang, Sóc Trăng", "can tho hau giang soc trang"),
+            ProvinceZoneItem("TP. Huế", 1, "Cố đô Huế, kho Thuận An (Giá chuẩn)", "Thành phố Huế", "hue thua thien hue"),
 
-            // Vùng 1: Đô thị lớn & các tỉnh đồng bằng (Giá chuẩn)
-            ProvinceZoneItem("Hà Nội", 1, "Thủ đô (Giá chuẩn)"),
-            ProvinceZoneItem("TP. Hồ Chí Minh", 1, "Đô thị lớn (Giá chuẩn)"),
-            ProvinceZoneItem("Đà Nẵng", 1, "Đô thị lớn (Giá chuẩn)"),
-            ProvinceZoneItem("Hải Phòng", 1, "Thành phố cảng (Giá chuẩn)"),
-            ProvinceZoneItem("Cần Thơ", 1, "Đồng bằng sông Cửu Long"),
-            ProvinceZoneItem("Bình Dương", 1, "Gần kho đầu mối"),
-            ProvinceZoneItem("Đồng Nai", 1, "Gần kho đầu mối"),
-            ProvinceZoneItem("Bà Rịa - Vũng Tàu", 1, "Cảng biển xăng dầu"),
-            ProvinceZoneItem("Quảng Ninh", 1, "Cảng biển tiếp nhận"),
-            ProvinceZoneItem("Bắc Ninh", 1, "Đồng bằng sông Hồng"),
-            ProvinceZoneItem("Hải Dương", 1, "Đồng bằng sông Hồng"),
-            ProvinceZoneItem("Hưng Yên", 1, "Đồng bằng sông Hồng"),
-            ProvinceZoneItem("Thái Bình", 1, "Đồng bằng sông Hồng"),
-            ProvinceZoneItem("Nam Định", 1, "Đồng bằng sông Hồng"),
-            ProvinceZoneItem("Ninh Bình", 1, "Đồng bằng sông Hồng"),
-            ProvinceZoneItem("Hà Nam", 1, "Đồng bằng sông Hồng"),
-            ProvinceZoneItem("Vĩnh Phúc", 1, "Đồng bằng sông Hồng"),
-            ProvinceZoneItem("Phú Thọ", 1, "Trung du Bắc Bộ"),
-            ProvinceZoneItem("Thái Nguyên", 1, "Trung du Bắc Bộ"),
-            ProvinceZoneItem("Bắc Giang", 1, "Trung du Bắc Bộ"),
-            ProvinceZoneItem("Thanh Hóa", 1, "Bắc Trung Bộ"),
-            ProvinceZoneItem("Nghệ An", 1, "Bắc Trung Bộ"),
-            ProvinceZoneItem("Hà Tĩnh", 1, "Bắc Trung Bộ"),
-            ProvinceZoneItem("Quảng Bình", 1, "Bắc Trung Bộ"),
-            ProvinceZoneItem("Quảng Trị", 1, "Bắc Trung Bộ"),
-            ProvinceZoneItem("Thừa Thiên Huế", 1, "Bắc Trung Bộ"),
-            ProvinceZoneItem("Quảng Nam", 1, "Duyên hải miền Trung"),
-            ProvinceZoneItem("Quảng Ngãi", 1, "Gần lọc dầu Dung Quất"),
-            ProvinceZoneItem("Bình Định", 1, "Duyên hải miền Trung"),
-            ProvinceZoneItem("Phú Yên", 1, "Duyên hải miền Trung"),
-            ProvinceZoneItem("Khánh Hòa", 1, "Duyên hải miền Trung"),
-            ProvinceZoneItem("Ninh Thuận", 1, "Duyên hải Nam Trung Bộ"),
-            ProvinceZoneItem("Bình Thuận", 1, "Duyên hải Nam Trung Bộ"),
-            ProvinceZoneItem("Tây Ninh", 1, "Đông Nam Bộ"),
-            ProvinceZoneItem("Bình Phước", 1, "Đông Nam Bộ"),
-            ProvinceZoneItem("Long An", 1, "Tây Nam Bộ"),
-            ProvinceZoneItem("Tiền Giang", 1, "Tây Nam Bộ"),
-            ProvinceZoneItem("Bến Tre", 1, "Tây Nam Bộ"),
-            ProvinceZoneItem("Trà Vinh", 1, "Tây Nam Bộ"),
-            ProvinceZoneItem("Vĩnh Long", 1, "Tây Nam Bộ"),
-            ProvinceZoneItem("Đồng Tháp", 1, "Tây Nam Bộ"),
-            ProvinceZoneItem("An Giang", 1, "Tây Nam Bộ"),
-            ProvinceZoneItem("Kiên Giang", 1, "Tây Nam Bộ"),
-            ProvinceZoneItem("Hậu Giang", 1, "Tây Nam Bộ"),
-            ProvinceZoneItem("Sóc Trăng", 1, "Tây Nam Bộ"),
-            ProvinceZoneItem("Bạc Liêu", 1, "Tây Nam Bộ"),
-            ProvinceZoneItem("Cà Mau", 1, "Tây Nam Bộ")
+            // 13 TỈNH THUỘC VÙNG 2 (Miền núi, Tây Nguyên, cước vận chuyển + tối đa 2%)
+            ProvinceZoneItem("Lạng Sơn", 2, "Miền núi phía Bắc (+2%)", "Cửa khẩu Hữu Nghị, Đồng Đăng", "lang son dong dang huu nghi"),
+            ProvinceZoneItem("Cao Bằng", 2, "Miền núi phía Bắc (+2%)", "Thác Bản Giốc, Pác Bó", "cao bang pac bo"),
+            ProvinceZoneItem("Tuyên Quang", 2, "Miền núi phía Bắc (+2%)", "Gồm Tuyên Quang, Hà Giang", "tuyen quang ha giang dong van meo vac"),
+            ProvinceZoneItem("Thái Nguyên", 2, "Miền núi phía Bắc (+2%)", "Gồm Thái Nguyên, Bắc Kạn", "thai nguyen bac kan ba be"),
+            ProvinceZoneItem("Lào Cai", 2, "Miền núi Tây Bắc (+2%)", "Gồm Lào Cai, Yên Bái", "lao cai yen bai sa pa bat xat"),
+            ProvinceZoneItem("Điện Biên", 2, "Miền núi Tây Bắc (+2%)", "Điện Biên Phủ, Mường Nhé", "dien bien phu muong nhe"),
+            ProvinceZoneItem("Lai Châu", 2, "Miền núi Tây Bắc (+2%)", "Tây Bắc hiểm trở", "lai chau tam duong"),
+            ProvinceZoneItem("Sơn La", 2, "Miền núi Tây Bắc (+2%)", "Mộc Châu, Sông Mã", "son la moc chau"),
+            ProvinceZoneItem("Gia Lai", 2, "Tây Nguyên (+2%)", "Gồm Gia Lai, Bình Định", "gia lai pleiku binh dinh quy nhon"),
+            ProvinceZoneItem("Đắk Lắk", 2, "Tây Nguyên (+2%)", "Thủ phủ cà phê Buôn Ma Thuột", "dak lak dac lac buon ma thuot bmt"),
+            ProvinceZoneItem("Lâm Đồng", 2, "Tây Nguyên (+2%)", "Gồm Lâm Đồng, Đắk Nông, Bình Thuận", "lam dong da lat dak nong binh thuan phan thiet gia nghia"),
+            ProvinceZoneItem("Quảng Ngãi", 2, "Khu vực miền núi & duyên hải (+2%)", "Gồm Quảng Ngãi, Kon Tum", "quang ngai kon tum mang den"),
+            ProvinceZoneItem("Cà Mau", 2, "Cực Nam, chi phí vận tải xa (+2%)", "Gồm Cà Mau, Bạc Liêu", "ca mau bac lieu"),
+
+            // 15 TỈNH THUỘC VÙNG 1 (Đồng bằng & duyên hải gần cảng, nguồn cấp giá chuẩn)
+            ProvinceZoneItem("An Giang", 1, "Tây Nam Bộ (Giá chuẩn)", "Gồm An Giang, Kiên Giang", "an giang kien giang rach gia chau doc ha tien"),
+            ProvinceZoneItem("Bắc Ninh", 1, "Đồng bằng sông Hồng (Giá chuẩn)", "Gồm Bắc Ninh, Bắc Giang", "bac ninh bac giang"),
+            ProvinceZoneItem("Đồng Nai", 1, "Đông Nam Bộ, kho Gò Dầu (Giá chuẩn)", "Gồm Đồng Nai, Bình Phước", "dong nai bien hoa binh phuoc dong xoai"),
+            ProvinceZoneItem("Đồng Tháp", 1, "Tây Nam Bộ (Giá chuẩn)", "Gồm Đồng Tháp, Tiền Giang, Bến Tre", "dong thap tien giang ben tre my tho cao lanh"),
+            ProvinceZoneItem("Hà Tĩnh", 1, "Cảng nước sâu Vũng Áng (Giá chuẩn)", "Bắc Trung Bộ", "ha tinh vung ang"),
+            ProvinceZoneItem("Hưng Yên", 1, "Đồng bằng sông Hồng (Giá chuẩn)", "Gồm Hưng Yên, Thái Bình", "hung yen thai binh"),
+            ProvinceZoneItem("Khánh Hòa", 1, "Tổng kho Cam Ranh, Vân Phong (Giá chuẩn)", "Gồm Khánh Hòa, Ninh Thuận, Phú Yên", "khanh hoa nha trang ninh thuan phan rang phu yen tuy hoa"),
+            ProvinceZoneItem("Nghệ An", 1, "Kho Cửa Lò, Bến Thủy (Giá chuẩn)", "Bắc Trung Bộ, TP Vinh", "nghe an vinh cua lo"),
+            ProvinceZoneItem("Ninh Bình", 1, "Đồng bằng sông Hồng (Giá chuẩn)", "Gồm Ninh Bình, Nam Định, Hà Nam", "ninh binh nam dinh ha nam phu ly"),
+            ProvinceZoneItem("Phú Thọ", 1, "Trung du Bắc Bộ (Giá chuẩn)", "Gồm Phú Thọ, Vĩnh Phúc, Hòa Bình", "phu tho viet tri vinh phuc vinh yen hoa binh"),
+            ProvinceZoneItem("Quảng Ninh", 1, "Cảng đầu mối xăng dầu B12 (Giá chuẩn)", "Hạ Long, Cẩm Phả, B12", "quang ninh ha long cam pha bai chay"),
+            ProvinceZoneItem("Quảng Trị", 1, "Bắc Trung Bộ (Giá chuẩn)", "Gồm Quảng Trị, Quảng Bình", "quang tri dong ha quang binh dong hoi"),
+            ProvinceZoneItem("Tây Ninh", 1, "Đông Nam Bộ (Giá chuẩn)", "Gồm Tây Ninh, Long An", "tay ninh long an tan an"),
+            ProvinceZoneItem("Thanh Hóa", 1, "Nhà máy Lọc hóa dầu Nghi Sơn (Giá chuẩn)", "Nghi Sơn, Bỉm Sơn", "thanh hoa nghi son"),
+            ProvinceZoneItem("Vĩnh Long", 1, "Tây Nam Bộ (Giá chuẩn)", "Gồm Vĩnh Long, Trà Vinh", "vinh long tra vinh"),
+
+            // ĐẶC THÙ HẢI ĐẢO (Áp dụng giá Vùng 2 theo quy định Petrolimex)
+            ProvinceZoneItem("Huyện đảo & Quần đảo", 2, "Hải đảo cước đường biển (+2%)", "Phú Quốc, Côn Đảo, Cát Bà, Lý Sơn, Trường Sa...", "phu quoc con dao cat ba ly son co to bach long vy truong sa hoang sa")
         )
     }
 
     val filteredProvinces = remember(searchQuery, allProvinces) {
         val q = removeAccents(searchQuery)
         if (q.isEmpty()) emptyList()
-        else allProvinces.filter { removeAccents(it.name).contains(q) || removeAccents(it.description).contains(q) }
+        else allProvinces.filter { 
+            removeAccents(it.name).contains(q) || 
+            removeAccents(it.description).contains(q) ||
+            removeAccents(it.subNote).contains(q) ||
+            removeAccents(it.aliases).contains(q)
+        }
     }
 
     AlertDialog(
@@ -476,7 +462,7 @@ fun ZoneSelectionDialog(
                         fontWeight = FontWeight.Bold
                     )
                     Text(
-                        text = "Quy định giá bán lẻ xăng dầu Petrolimex",
+                        text = "Cơ cấu 34 tỉnh thành & quy định giá Petrolimex",
                         color = TextSecondaryDark,
                         fontSize = 11.sp
                     )
@@ -487,12 +473,12 @@ fun ZoneSelectionDialog(
             Column(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .heightIn(max = 440.dp),
+                    .heightIn(max = 450.dp),
                 verticalArrangement = Arrangement.spacedBy(10.dp)
             ) {
                 // Giải thích ngắn gọn
                 Text(
-                    text = "Do chi phí vận chuyển đường xa hiểm trở, Bộ Công Thương & Petrolimex chia giá bán lẻ làm 2 vùng:",
+                    text = "Bộ Công Thương & Petrolimex phân chia 34 tỉnh thành thành 2 vùng giá theo chi phí vận chuyển:",
                     color = TextSecondaryDark,
                     fontSize = 12.sp,
                     lineHeight = 16.sp
@@ -530,7 +516,7 @@ fun ZoneSelectionDialog(
                         }
                         Spacer(modifier = Modifier.height(4.dp))
                         Text(
-                            text = "Hà Nội, TP.HCM, Đà Nẵng, Hải Phòng, Cần Thơ và hơn 40 tỉnh đồng bằng gần cảng biển & kho đầu mối.",
+                            text = "21 tỉnh & TP đồng bằng, ven biển gần cảng/tổng kho (Hà Nội, TP.HCM, Hải Phòng, Đà Nẵng, Cần Thơ, Bắc Ninh...).",
                             color = TextSecondaryDark,
                             fontSize = 11.sp,
                             lineHeight = 15.sp
@@ -570,7 +556,7 @@ fun ZoneSelectionDialog(
                         }
                         Spacer(modifier = Modifier.height(4.dp))
                         Text(
-                            text = "16 tỉnh miền núi phía Bắc (Hà Giang, Lạng Sơn, Sơn La...), Tây Nguyên (Đắk Lắk, Lâm Đồng...) và hải đảo xa xôi.",
+                            text = "13 tỉnh miền núi, Tây Nguyên (Lạng Sơn, Cao Bằng, Tuyên Quang, Lào Cai, Sơn La, Lâm Đồng, Đắk Lắk...) & tất cả hải đảo.",
                             color = TextSecondaryDark,
                             fontSize = 11.sp,
                             lineHeight = 15.sp
@@ -586,7 +572,7 @@ fun ZoneSelectionDialog(
                     onValueChange = { searchQuery = it },
                     modifier = Modifier.fillMaxWidth(),
                     placeholder = {
-                        Text("🔍 Nhập tỉnh của bạn (vd: Lạng Sơn, Hà Nội...)", color = TextSecondaryDark, fontSize = 12.sp)
+                        Text("🔍 Nhập tỉnh của bạn (vd: Lạng Sơn, Hà Giang, TP.HCM...)", color = TextSecondaryDark, fontSize = 12.sp)
                     },
                     singleLine = true,
                     shape = RoundedCornerShape(10.dp),
@@ -605,9 +591,9 @@ fun ZoneSelectionDialog(
                 if (filteredProvinces.isNotEmpty()) {
                     Column(
                         modifier = Modifier.fillMaxWidth(),
-                        verticalArrangement = Arrangement.spacedBy(4.dp)
+                        verticalArrangement = Arrangement.spacedBy(6.dp)
                     ) {
-                        filteredProvinces.take(4).forEach { item ->
+                        filteredProvinces.take(5).forEach { item ->
                             Surface(
                                 color = DarkBackground,
                                 shape = RoundedCornerShape(8.dp),
@@ -622,7 +608,12 @@ fun ZoneSelectionDialog(
                                     horizontalArrangement = Arrangement.SpaceBetween,
                                     verticalAlignment = Alignment.CenterVertically
                                 ) {
-                                    Text(text = item.name, color = TextPrimaryDark, fontSize = 12.sp, fontWeight = FontWeight.SemiBold)
+                                    Column(modifier = Modifier.weight(1f)) {
+                                        Text(text = item.name, color = TextPrimaryDark, fontSize = 12.sp, fontWeight = FontWeight.SemiBold)
+                                        if (item.subNote.isNotEmpty()) {
+                                            Text(text = item.subNote, color = TextSecondaryDark, fontSize = 10.sp)
+                                        }
+                                    }
                                     Text(
                                         text = "➔ Vùng ${item.zone}",
                                         color = if (item.zone == 1) PetrolTeal else EnergyAmber,
@@ -639,7 +630,7 @@ fun ZoneSelectionDialog(
                         modifier = Modifier.fillMaxWidth(),
                         horizontalArrangement = Arrangement.spacedBy(6.dp)
                     ) {
-                        listOf("Hà Nội" to 1, "TP.HCM" to 1, "Lạng Sơn" to 2, "Đắk Lắk" to 2).forEach { (prov, z) ->
+                        listOf("Hà Nội" to 1, "TP.HCM" to 1, "Lạng Sơn" to 2, "Đà Nẵng" to 1, "Lâm Đồng" to 2).forEach { (prov, z) ->
                             Surface(
                                 color = DarkBackground,
                                 shape = RoundedCornerShape(6.dp),
