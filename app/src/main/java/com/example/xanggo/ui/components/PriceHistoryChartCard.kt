@@ -66,8 +66,8 @@ fun PriceHistoryChartCard(
         Column(
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(16.dp),
-            verticalArrangement = Arrangement.spacedBy(14.dp)
+                .padding(14.dp),
+            verticalArrangement = Arrangement.spacedBy(10.dp)
         ) {
             // 1. Header Card: Tiêu đề + Chọn loại xăng
             Row(
@@ -75,25 +75,32 @@ fun PriceHistoryChartCard(
                 horizontalArrangement = Arrangement.SpaceBetween,
                 verticalAlignment = Alignment.CenterVertically
             ) {
-                Row(verticalAlignment = Alignment.CenterVertically) {
-                    Text(text = "📈", fontSize = 20.sp)
-                    Spacer(modifier = Modifier.width(8.dp))
+                Row(
+                    modifier = Modifier.weight(1f, fill = false),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Text(text = "📈", fontSize = 18.sp)
+                    Spacer(modifier = Modifier.width(6.dp))
                     Column {
                         Text(
                             text = "Lịch Sử Biến Động Giá",
                             color = TextPrimaryDark,
-                            fontSize = 16.sp,
-                            fontWeight = FontWeight.Bold
+                            fontSize = 15.sp,
+                            fontWeight = FontWeight.Bold,
+                            maxLines = 1
                         )
                         Text(
                             text = "${history.size} kỳ điều hành gần nhất",
                             color = TextSecondaryDark,
-                            fontSize = 11.sp
+                            fontSize = 11.sp,
+                            maxLines = 1
                         )
                     }
                 }
 
-                // Nhãn biến động của điểm đang chọn
+                Spacer(modifier = Modifier.width(8.dp))
+
+                // Nhãn biến động của điểm đang chọn (Chống rớt dòng dọc tuyệt đối)
                 Surface(
                     color = if (pointDelta > 0) PriceRed.copy(alpha = 0.15f)
                             else if (pointDelta < 0) PriceGreen.copy(alpha = 0.15f)
@@ -109,6 +116,8 @@ fun PriceHistoryChartCard(
                                 else TextSecondaryDark,
                         fontSize = 11.sp,
                         fontWeight = FontWeight.Bold,
+                        maxLines = 1,
+                        softWrap = false,
                         modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp)
                     )
                 }
@@ -261,7 +270,7 @@ fun SmoothSplineChart(
     Box(
         modifier = Modifier
             .fillMaxWidth()
-            .height(180.dp)
+            .height(145.dp)
             .pointerInput(points) {
                 detectTapGestures { offset ->
                     val stepX = size.width / (points.size - 1)

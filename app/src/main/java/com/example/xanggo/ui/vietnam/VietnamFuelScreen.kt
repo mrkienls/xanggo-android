@@ -43,23 +43,23 @@ fun VietnamFuelScreen(
             .fillMaxSize()
             .background(DarkBackground)
             .padding(horizontal = 16.dp),
-        verticalArrangement = Arrangement.spacedBy(16.dp)
+        verticalArrangement = Arrangement.spacedBy(12.dp)
     ) {
         // 1. Header: Logo & Region Switcher
         item {
-            Spacer(modifier = Modifier.height(8.dp))
+            Spacer(modifier = Modifier.height(6.dp))
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.SpaceBetween,
                 verticalAlignment = Alignment.CenterVertically
             ) {
                 Row(verticalAlignment = Alignment.CenterVertically) {
-                    Text(text = "⛽", fontSize = 28.sp)
+                    Text(text = "⛽", fontSize = 26.sp)
                     Spacer(modifier = Modifier.width(8.dp))
                     Text(
                         text = "XăngGo",
                         color = TextPrimaryDark,
-                        fontSize = 24.sp,
+                        fontSize = 22.sp,
                         fontWeight = FontWeight.Bold
                     )
                 }
@@ -91,13 +91,27 @@ fun VietnamFuelScreen(
                 }
             }
 
-            // Dòng thời gian cập nhật
-            Text(
-                text = "Cập nhật: ${data.updatedAt} • ${data.source}",
-                color = TextSecondaryDark,
-                fontSize = 12.sp,
-                modifier = Modifier.padding(top = 4.dp)
-            )
+            // Dòng thời gian cập nhật tinh gọn & chuyên nghiệp
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(top = 4.dp),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Text(
+                    text = "🕒 Cập nhật: ${data.updatedAt}",
+                    color = TextSecondaryDark,
+                    fontSize = 11.sp,
+                    maxLines = 1
+                )
+                Text(
+                    text = "Nguồn: Petrolimex",
+                    color = TextSecondaryDark,
+                    fontSize = 11.sp,
+                    maxLines = 1
+                )
+            }
         }
 
         // 2. Hero Card: RON 95-III (Nhiều người dùng nhất)
@@ -109,11 +123,11 @@ fun VietnamFuelScreen(
             Card(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .clip(RoundedCornerShape(20.dp)),
+                    .clip(RoundedCornerShape(18.dp)),
                 colors = CardDefaults.cardColors(containerColor = DarkSurface),
                 elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
             ) {
-                Column(modifier = Modifier.padding(20.dp)) {
+                Column(modifier = Modifier.padding(16.dp)) {
                     Row(
                         modifier = Modifier.fillMaxWidth(),
                         horizontalArrangement = Arrangement.SpaceBetween,
@@ -122,7 +136,7 @@ fun VietnamFuelScreen(
                         Text(
                             text = heroItem.name,
                             color = TextSecondaryDark,
-                            fontSize = 16.sp,
+                            fontSize = 15.sp,
                             fontWeight = FontWeight.Medium
                         )
 
@@ -130,29 +144,32 @@ fun VietnamFuelScreen(
                         DeltaPriceBadge(delta = heroItem.delta)
                     }
 
-                    Spacer(modifier = Modifier.height(12.dp))
+                    Spacer(modifier = Modifier.height(8.dp))
 
                     Row(verticalAlignment = Alignment.Bottom) {
                         Text(
                             text = currencyFormat.format(currentPrice),
                             color = TextPrimaryDark,
-                            fontSize = 36.sp,
+                            fontSize = 34.sp,
                             fontWeight = FontWeight.ExtraBold
                         )
                         Text(
                             text = " đ/lít",
                             color = TextSecondaryDark,
-                            fontSize = 16.sp,
-                            modifier = Modifier.padding(bottom = 6.dp, start = 4.dp)
+                            fontSize = 15.sp,
+                            modifier = Modifier.padding(bottom = 5.dp, start = 4.dp)
                         )
                     }
 
-                    Spacer(modifier = Modifier.height(8.dp))
+                    Spacer(modifier = Modifier.height(6.dp))
 
+                    // Chống rớt dòng mồ côi chữ đ
                     Text(
-                        text = "Kỳ trước: ${currencyFormat.format(previousPrice)} đ • Vùng ${if (selectedZone == 1) "2: " + currencyFormat.format(heroItem.zone2Price) + " đ" else "1: " + currencyFormat.format(heroItem.zone1Price) + " đ"}",
+                        text = "Kỳ trước: ${currencyFormat.format(previousPrice)}\u00A0đ  •  Vùng ${if (selectedZone == 1) "2: " + currencyFormat.format(heroItem.zone2Price) else "1: " + currencyFormat.format(heroItem.zone1Price)}\u00A0đ",
                         color = TextSecondaryDark,
-                        fontSize = 13.sp
+                        fontSize = 12.sp,
+                        maxLines = 1,
+                        softWrap = false
                     )
                 }
             }
