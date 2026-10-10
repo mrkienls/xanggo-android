@@ -24,6 +24,7 @@ import androidx.compose.ui.unit.sp
 import com.example.xanggo.data.model.CountryFuel
 import com.example.xanggo.data.model.WorldFuelSummary
 import com.example.xanggo.theme.*
+import com.example.xanggo.ui.components.GlobeVector
 import java.text.Normalizer
 import java.text.NumberFormat
 import java.util.Locale
@@ -135,14 +136,22 @@ fun WorldCompareScreen(
                     horizontalArrangement = Arrangement.SpaceBetween,
                     verticalAlignment = Alignment.CenterVertically
                 ) {
-                    Row(verticalAlignment = Alignment.CenterVertically) {
+                    Row(
+                        modifier = Modifier.weight(1f, fill = false),
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
                         Surface(
                             color = PetrolTeal.copy(alpha = 0.15f),
                             shape = CircleShape,
-                            modifier = Modifier.size(36.dp)
+                            modifier = Modifier.size(34.dp)
                         ) {
                             Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-                                Text(text = "🌐", fontSize = 18.sp)
+                                Icon(
+                                    imageVector = GlobeVector,
+                                    contentDescription = null,
+                                    tint = PetrolTeal,
+                                    modifier = Modifier.size(18.dp)
+                                )
                             }
                         }
 
@@ -152,34 +161,38 @@ fun WorldCompareScreen(
                             Text(
                                 text = "Giá Xăng ",
                                 color = TextPrimaryDark,
-                                fontSize = 18.sp,
-                                fontWeight = FontWeight.Bold
+                                fontSize = 17.sp,
+                                fontWeight = FontWeight.Bold,
+                                maxLines = 1
                             )
                             Text(
                                 text = "Thế Giới",
                                 color = PetrolTeal,
-                                fontSize = 18.sp,
-                                fontWeight = FontWeight.Bold
+                                fontSize = 17.sp,
+                                fontWeight = FontWeight.Bold,
+                                maxLines = 1
                             )
                         }
 
-                        Spacer(modifier = Modifier.width(4.dp))
+                        Spacer(modifier = Modifier.width(3.dp))
 
                         // Nút (?) giải thích sức mua
                         IconButton(
                             onClick = { showInfoDialog = true },
-                            modifier = Modifier.size(28.dp)
+                            modifier = Modifier.size(26.dp)
                         ) {
                             Surface(
                                 color = PetrolTeal.copy(alpha = 0.2f),
                                 shape = CircleShape
                             ) {
                                 Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-                                    Text(text = "💡", fontSize = 13.sp)
+                                    Text(text = "💡", fontSize = 12.sp)
                                 }
                             }
                         }
                     }
+
+                    Spacer(modifier = Modifier.width(6.dp))
 
                     // Chuyển đổi tiền tệ [ VND ] | [ USD ]
                     Surface(
@@ -187,7 +200,7 @@ fun WorldCompareScreen(
                         shape = RoundedCornerShape(20.dp),
                         border = androidx.compose.foundation.BorderStroke(1.dp, PetrolTeal.copy(alpha = 0.3f))
                     ) {
-                        Row(modifier = Modifier.padding(3.dp)) {
+                        Row(modifier = Modifier.padding(2.5.dp)) {
                             CurrencyToggleChip(
                                 label = "VND",
                                 isSelected = selectedCurrency == "VND",
@@ -724,9 +737,11 @@ fun CurrencyToggleChip(
         Text(
             text = label,
             color = if (isSelected) androidx.compose.ui.graphics.Color.Black else TextSecondaryDark,
-            fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Normal,
-            fontSize = 12.sp,
-            modifier = Modifier.padding(horizontal = 12.dp, vertical = 4.dp)
+            fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Medium,
+            fontSize = 11.5.sp,
+            maxLines = 1,
+            softWrap = false,
+            modifier = Modifier.padding(horizontal = 9.dp, vertical = 4.dp)
         )
     }
 }

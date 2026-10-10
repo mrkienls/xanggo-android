@@ -226,9 +226,10 @@ fun VietnamFuelScreen(
                     Text(
                         text = "Kỳ trước: ${currencyFormat.format(previousPrice)}\u00A0đ/lít  •  Vùng ${if (selectedZone == 1) "2: " + currencyFormat.format(heroItem.zone2Price) else "1: " + currencyFormat.format(heroItem.zone1Price)}\u00A0đ/lít",
                         color = TextSecondaryDark,
-                        fontSize = 12.sp,
+                        fontSize = 11.5.sp,
                         maxLines = 1,
-                        softWrap = false
+                        softWrap = false,
+                        overflow = TextOverflow.Ellipsis
                     )
                 }
             }
@@ -401,7 +402,8 @@ fun FuelBentoCard(
                 color = TextSecondaryDark,
                 fontSize = 13.sp,
                 fontWeight = FontWeight.Medium,
-                maxLines = 1
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis
             )
 
             Spacer(modifier = Modifier.height(8.dp))
@@ -409,8 +411,10 @@ fun FuelBentoCard(
             Text(
                 text = "${currencyFormat.format(item.getPrice(zone))} đ",
                 color = TextPrimaryDark,
-                fontSize = 20.sp,
-                fontWeight = FontWeight.Bold
+                fontSize = 19.sp,
+                fontWeight = FontWeight.Bold,
+                maxLines = 1,
+                softWrap = false
             )
 
             Spacer(modifier = Modifier.height(6.dp))
@@ -891,7 +895,10 @@ fun NearbyFuelRadarCard(
                 horizontalArrangement = Arrangement.SpaceBetween,
                 verticalAlignment = Alignment.CenterVertically
             ) {
-                Row(verticalAlignment = Alignment.CenterVertically) {
+                Row(
+                    modifier = Modifier.weight(1f, fill = false),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
                     Box(
                         modifier = Modifier
                             .size(36.dp)
@@ -920,15 +927,21 @@ fun NearbyFuelRadarCard(
                             text = "Trạm Xăng Quanh Bạn",
                             color = TextPrimaryDark,
                             fontSize = 15.sp,
-                            fontWeight = FontWeight.Bold
+                            fontWeight = FontWeight.Bold,
+                            maxLines = 1,
+                            overflow = TextOverflow.Ellipsis
                         )
                         Text(
-                            text = "Chỉ đường bằng giọng nói 1-chạm",
+                            text = "Dẫn đường 1-chạm thông minh",
                             color = TextSecondaryDark,
-                            fontSize = 11.sp
+                            fontSize = 11.sp,
+                            maxLines = 1,
+                            overflow = TextOverflow.Ellipsis
                         )
                     }
                 }
+
+                Spacer(modifier = Modifier.width(8.dp))
 
                 Surface(
                     color = PriceGreen.copy(alpha = 0.15f),
@@ -949,7 +962,9 @@ fun NearbyFuelRadarCard(
                             text = "Vệ tinh GPS",
                             color = PriceGreen,
                             fontSize = 10.5.sp,
-                            fontWeight = FontWeight.SemiBold
+                            fontWeight = FontWeight.SemiBold,
+                            maxLines = 1,
+                            softWrap = false
                         )
                     }
                 }
