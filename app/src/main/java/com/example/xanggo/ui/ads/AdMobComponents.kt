@@ -18,13 +18,8 @@ import com.google.android.gms.ads.AdView
 import com.google.android.gms.ads.LoadAdError
 
 object AdMobConfig {
-    // ID Test chính thức của Google (an toàn 100% trong quá trình phát triển & kiểm thử)
-    const val TEST_BANNER_ID = "ca-app-pub-3940256099942544/6300978111"
-    const val TEST_NATIVE_ID = "ca-app-pub-3940256099942544/2247696110"
-
-    // Khi bạn tạo xong Ad Units trên Google AdMob, chỉ cần thay ID thật vào 2 biến này:
-    var BANNER_AD_UNIT_ID: String = TEST_BANNER_ID
-    var NATIVE_AD_UNIT_ID: String = TEST_NATIVE_ID
+    // Debug: ID test của Google. Release: ID thật khai báo trong keystore.properties (xem app/build.gradle.kts)
+    val BANNER_AD_UNIT_ID: String = com.example.xanggo.BuildConfig.ADMOB_BANNER_ID
 }
 
 @Composable

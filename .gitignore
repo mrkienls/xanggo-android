@@ -23,3 +23,7 @@ __pycache__/
 # Heavy build binaries
 *.apk
 *.aab
+
+# Upload key & mat khau ky app
+keystore.properties
+keystore/

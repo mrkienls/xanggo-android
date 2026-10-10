@@ -1,8 +1,15 @@
+import java.util.Properties
+
 plugins {
   alias(libs.plugins.android.application)
   alias(libs.plugins.compose.compiler)
   alias(libs.plugins.kotlin.serialization)
   alias(libs.plugins.google.services)
+}
+
+val keystorePropsFile = rootProject.file("keystore.properties")
+val keystoreProps = Properties().apply {
+    if (keystorePropsFile.exists()) keystorePropsFile.inputStream().use { load(it) }
 }
 
 android {
@@ -14,12 +21,40 @@ android {
         targetSdk = 36
         versionCode = 1
         versionName = "1.0"
+
+        // ID test chính thức của Google cho bản debug
+        manifestPlaceholders["admobAppId"] = "ca-app-pub-3940256099942544~3347511713"
+        buildConfigField("String", "ADMOB_BANNER_ID", "\"ca-app-pub-3940256099942544/6300978111\"")
+    }
+
+    // Khoá ký (upload key) đọc từ keystore.properties ở thư mục gốc - file này KHÔNG commit lên git
+    signingConfigs {
+        if (keystorePropsFile.exists()) {
+            create("release") {
+                storeFile = rootProject.file(keystoreProps.getProperty("storeFile"))
+                storePassword = keystoreProps.getProperty("storePassword")
+                keyAlias = keystoreProps.getProperty("keyAlias")
+                keyPassword = keystoreProps.getProperty("keyPassword")
+            }
+        }
     }
 
     buildTypes {
         release {
-            isMinifyEnabled = false
+            isMinifyEnabled = true
+            isShrinkResources = true
             proguardFiles(getDefaultProguardFile("proguard-android-optimize.txt"), "proguard-rules.pro")
+            signingConfigs.findByName("release")?.let { signingConfig = it }
+
+            // ID AdMob thật: khai báo trong keystore.properties (admobAppId, admobBannerId)
+            val admobAppId = keystoreProps.getProperty("admobAppId")
+            val admobBannerId = keystoreProps.getProperty("admobBannerId")
+            if (!admobAppId.isNullOrBlank() && !admobBannerId.isNullOrBlank()) {
+                manifestPlaceholders["admobAppId"] = admobAppId
+                buildConfigField("String", "ADMOB_BANNER_ID", "\"$admobBannerId\"")
+            } else {
+                logger.warn("⚠️  XăngGo: chưa có admobAppId/admobBannerId trong keystore.properties -> bản release đang dùng ID QUẢNG CÁO TEST")
+            }
         }
     }
     compileOptions {
@@ -29,7 +64,7 @@ android {
     buildFeatures {
       compose = true
       aidl = false
-      buildConfig = false
+      buildConfig = true
       shaders = false
     }
 

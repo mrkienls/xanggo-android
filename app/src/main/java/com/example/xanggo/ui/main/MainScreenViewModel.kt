@@ -9,6 +9,8 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.catch
+import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
 
@@ -41,18 +43,17 @@ class MainScreenViewModel(
 
     private fun loadData() {
         viewModelScope.launch {
-            try {
-                fuelRepository.getVietnamFuelPrices().collect { vnData ->
-                    fuelRepository.getWorldFuelSummary().collect { worldData ->
-                        _uiState.value = MainUiState.Success(
-                            vietnamData = vnData,
-                            worldData = syncVietnamPrice(worldData, vnData)
-                        )
-                    }
-                }
-            } catch (e: Exception) {
-                _uiState.value = MainUiState.Error(e.message ?: "Lỗi tải dữ liệu")
+            combine(
+                fuelRepository.getVietnamFuelPrices(),
+                fuelRepository.getWorldFuelSummary()
+            ) { vnData, worldData ->
+                MainUiState.Success(
+                    vietnamData = vnData,
+                    worldData = syncVietnamPrice(worldData, vnData)
+                ) as MainUiState
             }
+                .catch { e -> emit(MainUiState.Error(e.message ?: "Lỗi tải dữ liệu")) }
+                .collect { _uiState.value = it }
         }
     }
 
