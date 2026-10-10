@@ -46,7 +46,7 @@ class MainScreenViewModel(
                     fuelRepository.getWorldFuelSummary().collect { worldData ->
                         _uiState.value = MainUiState.Success(
                             vietnamData = vnData,
-                            worldData = worldData
+                            worldData = syncVietnamPrice(worldData, vnData)
                         )
                     }
                 }
@@ -54,5 +54,17 @@ class MainScreenViewModel(
                 _uiState.value = MainUiState.Error(e.message ?: "Lỗi tải dữ liệu")
             }
         }
+    }
+
+    /** Đồng bộ giá VN trong dữ liệu thế giới với giá Petrolimex (Vùng 1) để 2 tab không lệch số. */
+    private fun syncVietnamPrice(world: WorldFuelSummary, vn: VietnamFuelData): WorldFuelSummary {
+        val vnPrice = (vn.items.firstOrNull { it.isFeatured } ?: vn.items.firstOrNull())?.zone1Price
+            ?: return world
+        if (vnPrice <= 0) return world
+        return world.copy(
+            countries = world.countries.map {
+                if (it.isCurrent) it.copy(priceVnd = vnPrice) else it
+            }
+        )
     }
 }

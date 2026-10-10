@@ -402,7 +402,8 @@ def fetch_global_fuel_data(vn_price_vnd=28250):
                     is_vn = (title == "Vietnam")
 
                     actual_usd = vn_price_usd if is_vn else price
-                    actual_vnd = int(round(actual_usd * usd_to_vnd))
+                    # VN dùng đúng giá Petrolimex, không quy đổi vòng qua USD (tránh lệch do làm tròn)
+                    actual_vnd = int(vn_price_vnd) if is_vn else int(round(actual_usd * usd_to_vnd))
                     affordability = round((actual_usd / daily_income) * 100, 2)
 
                     note = "Kỳ điều hành hôm nay" if is_vn else ("Chính phủ trợ giá" if price < 0.5 else ("Thuế cao" if price > 2.2 else ""))
@@ -428,7 +429,7 @@ def fetch_global_fuel_data(vn_price_vnd=28250):
             is_asean = title in ASEAN_SET
             is_vn = (title == "Vietnam")
             default_usd = vn_price_usd if is_vn else 1.25
-            default_vnd = int(round(default_usd * usd_to_vnd))
+            default_vnd = int(vn_price_vnd) if is_vn else int(round(default_usd * usd_to_vnd))
             affordability = round((default_usd / daily_income) * 100, 2)
             scraped_countries.append({
                 "code": title[:3].upper(),
