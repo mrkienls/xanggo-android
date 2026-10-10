@@ -137,7 +137,7 @@ fun VietnamFuelScreen(
                 verticalAlignment = Alignment.CenterVertically
             ) {
                 Text(
-                    text = "🕒 Cập nhật: ${data.updatedAt}",
+                    text = "🕒 Cập nhật: ${formatIsoDateTime(data.updatedAt)}",
                     color = TextSecondaryDark,
                     fontSize = 11.sp,
                     maxLines = 1,
@@ -1081,4 +1081,11 @@ fun openMapsSearch(context: Context, query: String) {
             context.startActivity(browserIntent)
         } catch (_: Exception) {}
     }
+}
+
+/** "2026-10-10T15:05:12.3+07:00" -> "10/10/2026 15:05". Chuỗi không phải ISO thì giữ nguyên. */
+fun formatIsoDateTime(raw: String): String {
+    val m = Regex("""^(\d{4})-(\d{2})-(\d{2})T(\d{2}):(\d{2})""").find(raw) ?: return raw
+    val (y, mo, d, h, mi) = m.destructured
+    return "$d/$mo/$y $h:$mi"
 }

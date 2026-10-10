@@ -8,9 +8,12 @@ import sys
 import json
 import logging
 from datetime import datetime
+from zoneinfo import ZoneInfo
 import requests
 from bs4 import BeautifulSoup
 import re
+
+VN_TZ = ZoneInfo("Asia/Ho_Chi_Minh")
 
 # Hỗ trợ UTF-8 cho Windows console
 if sys.platform.startswith("win"):
@@ -60,9 +63,11 @@ def fetch_vietnam_fuel_prices():
                     logger.info(f"Cào thành công {len(items)} mặt hàng xăng dầu mới nhất từ bảng giá kỳ điều hành!")
                     return items
     except Exception as e:
-        logger.warning(f"Lỗi khi cào dữ liệu live: {e}. Đang kích hoạt bộ dữ liệu dự phòng...")
+        logger.warning(f"Lỗi khi cào dữ liệu live: {e}")
 
-    return get_fallback_vietnam_prices()
+    # Không bịa số: trả None để run() giữ nguyên dữ liệu thật của lần cào thành công gần nhất
+    logger.error("Không cào được bảng giá Việt Nam. Sẽ giữ dữ liệu lần trước.")
+    return None
 
 
 def parse_vietnambiz_table(table):
@@ -119,66 +124,45 @@ def get_fuel_color(name):
     return "#0D9488"
 
 
-def get_fallback_vietnam_prices():
-    """Dữ liệu dự phòng chuẩn xác khi web nguồn bảo trì"""
-    logger.info("Sử dụng bộ dữ liệu dự phòng chuẩn...")
-    return [
-        {
-            "id": "e10_ron_95_iii",
-            "name": "Xăng E10 RON 95-III",
-            "zone_1": 28250,
-            "zone_2": 28810,
-            "delta": 1070,
-            "unit": "VND/lít",
-            "badge_color": "#F97316",
-            "is_featured": True
-        },
-        {
-            "id": "e5_ron_92_ii",
-            "name": "Xăng E5 RON 92-II",
-            "zone_1": 27700,
-            "zone_2": 28250,
-            "delta": 1140,
-            "unit": "VND/lít",
-            "badge_color": "#16A34A",
-            "is_featured": False
-        },
-        {
-            "id": "do_005s_ii",
-            "name": "Dầu DO 0.05S-II",
-            "zone_1": 29120,
-            "zone_2": 29700,
-            "delta": -590,
-            "unit": "VND/lít",
-            "badge_color": "#475569",
-            "is_featured": False
-        },
-        {
-            "id": "do_0001s_v",
-            "name": "Dầu DO 0.001S-V",
-            "zone_1": 30520,
-            "zone_2": 31130,
-            "delta": -590,
-            "unit": "VND/lít",
-            "badge_color": "#334155",
-            "is_featured": False
-        }
-    ]
+def load_previous(filename):
+    """Đọc dữ liệu thật của lần chạy thành công trước (backend/output/*.json được commit lại sau mỗi lần chạy)."""
+    path = os.path.join(OUTPUT_DIR, filename)
+    try:
+        with open(path, encoding="utf-8") as f:
+            return json.load(f)
+    except Exception:
+        return None
 
 
-def get_recent_price_history(current_ron95=28250, current_e5=27700, current_do=29120, current_delta=1070):
-    """Chuỗi lịch sử các kỳ điều hành xăng dầu gần nhất (theo thứ Năm hàng tuần)"""
-    return [
-        {"date": "13/08", "full_date": "13/08/2026", "ron95_price": 27140, "e5_price": 26550, "diesel_price": 29170, "delta_ron95": 180},
-        {"date": "20/08", "full_date": "20/08/2026", "ron95_price": 26920, "e5_price": 26340, "diesel_price": 28990, "delta_ron95": -220},
-        {"date": "27/08", "full_date": "27/08/2026", "ron95_price": 27330, "e5_price": 26720, "diesel_price": 29340, "delta_ron95": 410},
-        {"date": "03/09", "full_date": "03/09/2026", "ron95_price": 26980, "e5_price": 26410, "diesel_price": 29050, "delta_ron95": -350},
-        {"date": "10/09", "full_date": "10/09/2026", "ron95_price": 27220, "e5_price": 26630, "diesel_price": 29230, "delta_ron95": 240},
-        {"date": "17/09", "full_date": "17/09/2026", "ron95_price": 27060, "e5_price": 26450, "diesel_price": 29440, "delta_ron95": -160},
-        {"date": "24/09", "full_date": "24/09/2026", "ron95_price": 27490, "e5_price": 26840, "diesel_price": 29290, "delta_ron95": 430},
-        {"date": "01/10", "full_date": "01/10/2026", "ron95_price": 27180, "e5_price": 26560, "diesel_price": 29710, "delta_ron95": -310},
-        {"date": "08/10", "full_date": "08/10/2026", "ron95_price": current_ron95, "e5_price": current_e5, "diesel_price": current_do, "delta_ron95": current_delta}
-    ]
+HISTORY_MAX_POINTS = 12
+
+
+def build_price_history(previous_history, ron95, e5, do):
+    """
+    Nối thêm kỳ giá mới vào lịch sử đã lưu khi giá thay đổi (mỗi kỳ điều hành).
+    Không tự bịa các kỳ cũ: lịch sử chỉ gồm những kỳ crawler đã thực sự ghi nhận.
+    """
+    history = list(previous_history or [])
+    last = history[-1] if history else None
+
+    unchanged = last is not None and (
+        last.get("ron95_price") == ron95 and
+        last.get("e5_price") == e5 and
+        last.get("diesel_price") == do
+    )
+    if unchanged:
+        return history[-HISTORY_MAX_POINTS:]
+
+    now = datetime.now(VN_TZ)
+    history.append({
+        "date": now.strftime("%d/%m"),
+        "full_date": now.strftime("%d/%m/%Y"),
+        "ron95_price": ron95,
+        "e5_price": e5,
+        "diesel_price": do,
+        "delta_ron95": (ron95 - last["ron95_price"]) if last else 0
+    })
+    return history[-HISTORY_MAX_POINTS:]
 
 # -------------------------------------------------------------
 # 2. THU THẬP TỶ GIÁ & DỮ LIỆU SO SÁNH THẾ GIỚI
@@ -361,16 +345,17 @@ ASEAN_SET = {"Vietnam", "Singapore", "Malaysia", "Thailand", "Indonesia", "Phili
 def fetch_global_fuel_data(vn_price_vnd=28250):
     logger.info("Đang cập nhật tỷ giá ngoại tệ và dữ liệu xăng 170 quốc gia toàn cầu...")
     
-    # 1. Lấy tỷ giá USD -> VND từ API mở miễn phí
-    usd_to_vnd = 25800.0
+    # 1. Lấy tỷ giá USD -> VND từ API mở miễn phí (lỗi thì dùng tỷ giá thật của lần trước)
+    prev_world = load_previous("world_fuel.json") or {}
+    usd_to_vnd = float(prev_world.get("usd_to_vnd_rate") or 25800.0)
     try:
         fx_res = requests.get("https://open.er-api.com/v6/latest/USD", timeout=10)
         if fx_res.status_code == 200:
             rates = fx_res.json().get("rates", {})
-            usd_to_vnd = rates.get("VND", 25800.0)
+            usd_to_vnd = rates.get("VND", usd_to_vnd)
             logger.info(f"Tỷ giá USD/VND hiện tại: {usd_to_vnd:,.0f} VND")
     except Exception as e:
-        logger.warning(f"Lỗi lấy tỷ giá hối đoái: {e}. Sử dụng tỷ giá mặc định {usd_to_vnd}")
+        logger.warning(f"Lỗi lấy tỷ giá hối đoái: {e}. Dùng tỷ giá lần trước {usd_to_vnd:,.0f}")
 
     # Giá xăng tính theo USD của Việt Nam
     vn_price_usd = round(vn_price_vnd / usd_to_vnd, 2)
@@ -420,34 +405,37 @@ def fetch_global_fuel_data(vn_price_vnd=28250):
                         "note": note
                     })
     except Exception as e:
-        logger.warning(f"Lỗi khi cào dữ liệu thế giới: {e}. Sẽ dùng bộ dữ liệu tiêu chuẩn.")
+        logger.warning(f"Lỗi khi cào dữ liệu thế giới: {e}")
 
-    # Nếu cào thất bại thì dùng bộ dữ liệu chuẩn
+    updated_at = datetime.now(VN_TZ).isoformat()
+    stale = False
+
+    # Cào thất bại: KHÔNG bịa giá. Dùng lại bộ dữ liệu thật của lần trước, chỉ cập nhật giá VN.
     if not scraped_countries:
-        for title, meta in COUNTRY_META.items():
-            vn_name, flag, daily_income = meta
-            is_asean = title in ASEAN_SET
-            is_vn = (title == "Vietnam")
-            default_usd = vn_price_usd if is_vn else 1.25
-            default_vnd = int(vn_price_vnd) if is_vn else int(round(default_usd * usd_to_vnd))
-            affordability = round((default_usd / daily_income) * 100, 2)
-            scraped_countries.append({
-                "code": title[:3].upper(),
-                "name": vn_name,
-                "flag": flag,
-                "region": "ASEAN" if is_asean else "Global",
-                "price_usd": default_usd,
-                "price_vnd": default_vnd,
-                "daily_income_usd": daily_income,
-                "affordability_percent": affordability,
-                "is_current": is_vn,
-                "note": "Kỳ điều hành hôm nay" if is_vn else ""
-            })
+        previous = load_previous("world_fuel.json")
+        if not previous or not previous.get("countries"):
+            logger.error("Không cào được dữ liệu thế giới và chưa có dữ liệu cũ. Bỏ qua cập nhật thế giới.")
+            return None
+        logger.warning("Không cào được dữ liệu thế giới. Giữ dữ liệu thật của lần trước.")
+        stale = True
+        updated_at = previous.get("updated_at", updated_at)
+        usd_to_vnd = previous.get("usd_to_vnd_rate", usd_to_vnd)
+        vn_price_usd = round(vn_price_vnd / usd_to_vnd, 2)
+        for c in previous["countries"]:
+            c = dict(c)
+            if c.get("is_current"):
+                c["price_usd"] = vn_price_usd
+                c["price_vnd"] = int(vn_price_vnd)
+                income = c.get("daily_income_usd") or 0
+                if income:
+                    c["affordability_percent"] = round((vn_price_usd / income) * 100, 2)
+            scraped_countries.append(c)
 
     sorted_countries = sorted(scraped_countries, key=lambda x: x["price_usd"])
 
     return {
-        "updated_at": datetime.now().isoformat(),
+        "updated_at": updated_at,
+        "is_stale": stale,
         "usd_to_vnd_rate": usd_to_vnd,
         "total_countries": len(sorted_countries),
         "vn_rank": next((i + 1 for i, c in enumerate(sorted_countries) if c.get("is_current")), 30),
@@ -458,16 +446,18 @@ def fetch_global_fuel_data(vn_price_vnd=28250):
 # 3. ĐỒNG BỘ VÀO FIRESTORE & XUẤT STATIC CDN
 # -------------------------------------------------------------
 def sync_data(vn_data, global_data):
-    """Lưu trữ dữ liệu ra file tĩnh và đẩy lên Firebase (nếu có cấu hình)"""
+    """Lưu trữ dữ liệu ra file tĩnh và đẩy lên Firebase (nếu có cấu hình). Bộ nào None thì bỏ qua, không ghi đè."""
     vn_file = os.path.join(OUTPUT_DIR, "vietnam_fuel.json")
     global_file = os.path.join(OUTPUT_DIR, "world_fuel.json")
 
-    with open(vn_file, "w", encoding="utf-8") as f:
-        json.dump(vn_data, f, ensure_ascii=False, indent=2)
-    with open(global_file, "w", encoding="utf-8") as f:
-        json.dump(global_data, f, ensure_ascii=False, indent=2)
+    if vn_data is not None:
+        with open(vn_file, "w", encoding="utf-8") as f:
+            json.dump(vn_data, f, ensure_ascii=False, indent=2)
+    if global_data is not None:
+        with open(global_file, "w", encoding="utf-8") as f:
+            json.dump(global_data, f, ensure_ascii=False, indent=2)
 
-    logger.info(f"Đã xuất dữ liệu tĩnh ra {vn_file} và {global_file}")
+    logger.info(f"Đã xuất dữ liệu tĩnh ra {OUTPUT_DIR}")
 
     # Firebase Firestore
     key_path = os.path.join(os.path.dirname(__file__), "serviceAccountKey.json")
@@ -485,8 +475,10 @@ def sync_data(vn_data, global_data):
                 firebase_admin.initialize_app(cred)
 
             db = firestore.client()
-            db.collection("vietnam_fuel").document("current").set(vn_data)
-            db.collection("world_fuel").document("summary").set(global_data)
+            if vn_data is not None:
+                db.collection("vietnam_fuel").document("current").set(vn_data)
+            if global_data is not None:
+                db.collection("world_fuel").document("summary").set(global_data)
             logger.info("Đã đồng bộ thành công lên Firebase Cloud Firestore!")
         except Exception as e:
             logger.error(f"Lỗi khi đồng bộ Firebase: {e}")
@@ -499,30 +491,45 @@ def sync_data(vn_data, global_data):
 # -------------------------------------------------------------
 def run():
     logger.info("=== BẮT ĐẦU TIẾN TRÌNH CRAWLER XĂNGGO ===")
-    
+    source_failed = False
+    previous_vn = load_previous("vietnam_fuel.json")
+
     # 1. Cào giá Việt Nam thời gian thực
     items = fetch_vietnam_fuel_prices()
-    hero_fuel = next((x for x in items if x.get("is_featured")), items[0])
-    e5_fuel = next((x for x in items if "e5" in x.get("id", "") or "92" in x.get("id", "")), items[1] if len(items) > 1 else hero_fuel)
-    do_fuel = next((x for x in items if "do" in x.get("id", "") or "diesel" in x.get("id", "")), items[2] if len(items) > 2 else hero_fuel)
+    if items:
+        hero_fuel = next((x for x in items if x.get("is_featured")), items[0])
+        e5_fuel = next((x for x in items if "e5" in x.get("id", "") or "92" in x.get("id", "")), items[1] if len(items) > 1 else hero_fuel)
+        do_fuel = next((x for x in items if "do" in x.get("id", "") or "diesel" in x.get("id", "")), items[2] if len(items) > 2 else hero_fuel)
 
-    history = get_recent_price_history(
-        current_ron95=hero_fuel["zone_1"],
-        current_e5=e5_fuel["zone_1"],
-        current_do=do_fuel["zone_1"],
-        current_delta=hero_fuel["delta"]
-    )
+        history = build_price_history(
+            (previous_vn or {}).get("history"),
+            ron95=hero_fuel["zone_1"],
+            e5=e5_fuel["zone_1"],
+            do=do_fuel["zone_1"]
+        )
 
-    vn_data = {
-        "updated_at": datetime.now().isoformat(),
-        "announcement_title": f"Bảng giá xăng dầu ngày {datetime.now().strftime('%d/%m/%Y')}",
-        "source": "Kỳ điều hành Liên Bộ Công Thương - Tài chính (Petrolimex)",
-        "items": items,
-        "history": history
-    }
+        now = datetime.now(VN_TZ)
+        vn_data = {
+            "updated_at": now.isoformat(),
+            "announcement_title": f"Bảng giá xăng dầu ngày {now.strftime('%d/%m/%Y')}",
+            "source": "Kỳ điều hành Liên Bộ Công Thương - Tài chính (Petrolimex)",
+            "items": items,
+            "history": history
+        }
+    else:
+        # Giữ nguyên dữ liệu thật lần trước (không ghi đè), chỉ dùng để tính phần so sánh thế giới
+        source_failed = True
+        vn_data = None
+        items = (previous_vn or {}).get("items") or []
+        if not items:
+            logger.error("Không có dữ liệu Việt Nam (cả mới lẫn cũ). Dừng, không ghi đè gì.")
+            sys.exit(1)
+        hero_fuel = next((x for x in items if x.get("is_featured")), items[0])
 
     # 2. Cào giá thế giới & tính Sức mua
     global_data = fetch_global_fuel_data(vn_price_vnd=hero_fuel["zone_1"])
+    if global_data is None or global_data.get("is_stale"):
+        source_failed = True
 
     # 3. Đồng bộ dữ liệu
     sync_data(vn_data, global_data)
@@ -531,8 +538,12 @@ def run():
     print("\n" + "="*60)
     print("           KẾT QUẢ CÀO DỮ LIỆU THỜI GIAN THỰC")
     print("="*60)
-    print(f"🕒 Thời gian: {vn_data['announcement_title']}")
-    print(f"💵 Tỷ giá USD/VND: {global_data['usd_to_vnd_rate']:,.0f} đ")
+    if vn_data:
+        print(f"🕒 Thời gian: {vn_data['announcement_title']}")
+    else:
+        print("⚠️  Giá Việt Nam: GIỮ DỮ LIỆU LẦN TRƯỚC (nguồn lỗi)")
+    if global_data:
+        print(f"💵 Tỷ giá USD/VND: {global_data['usd_to_vnd_rate']:,.0f} đ")
     print("-" * 60)
     print(f"{'TÊN MẶT HÀNG':<25} | {'VÙNG 1':<10} | {'VÙNG 2':<10} | {'BIẾN ĐỘNG':<10}")
     print("-" * 60)
@@ -541,9 +552,16 @@ def run():
         delta_str = f"{sign}{it['delta']} đ" if it['delta'] != 0 else "0 đ"
         print(f"{it['name']:<25} | {it['zone_1']:>7,} đ | {it['zone_2']:>7,} đ | {delta_str:>9}")
     print("="*60)
-    print(f"🌍 Xếp hạng Việt Nam: #{global_data['vn_rank']} / {global_data['total_countries']} thế giới")
-    print(f"🇻🇳 Sức mua xăng VN: {next(c['affordability_percent'] for c in global_data['countries'] if c.get('is_current'))}% thu nhập bình quân ngày")
+    if global_data:
+        stale_note = " (dữ liệu thế giới lần trước)" if global_data.get("is_stale") else ""
+        print(f"🌍 Xếp hạng Việt Nam: #{global_data['vn_rank']} / {global_data['total_countries']} thế giới{stale_note}")
+        print(f"🇻🇳 Sức mua xăng VN: {next(c['affordability_percent'] for c in global_data['countries'] if c.get('is_current'))}% thu nhập bình quân ngày")
     print("="*60 + "\n")
+
+    if source_failed:
+        # Báo đỏ trên GitHub Actions để biết nguồn đang lỗi (dữ liệu cũ vẫn được giữ nguyên)
+        logger.error("=== HOÀN TẤT NHƯNG CÓ NGUỒN LỖI: đã giữ dữ liệu lần trước ===")
+        sys.exit(1)
     logger.info("=== HOÀN TẤT THÀNH CÔNG ===")
 
 
