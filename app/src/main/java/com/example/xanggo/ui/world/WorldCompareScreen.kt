@@ -3,6 +3,8 @@ package com.example.xanggo.ui.world
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.lazy.rememberLazyListState
@@ -396,63 +398,141 @@ fun WorldCompareScreen(
     }
 }
 
-    // HỘP THOẠI GIẢI THÍCH SỨC MUA TRỰC QUAN
+    // HỘP THOẠI GIẢI THÍCH CÔNG THỨC & SỨC MUA MINH BẠCH
     if (showInfoDialog) {
+        val scrollState = rememberScrollState()
         AlertDialog(
             onDismissRequest = { showInfoDialog = false },
             containerColor = DarkSurface,
             title = {
                 Row(verticalAlignment = Alignment.CenterVertically) {
-                    Text(text = "💡", fontSize = 24.sp)
+                    Text(text = "📐", fontSize = 24.sp)
                     Spacer(modifier = Modifier.width(8.dp))
-                    Text(
-                        text = "Thời gian làm việc mua 1L xăng là gì?",
-                        color = TextPrimaryDark,
-                        fontSize = 17.sp,
-                        fontWeight = FontWeight.Bold
-                    )
+                    Column {
+                        Text(
+                            text = "Công thức tính số phút mua xăng",
+                            color = TextPrimaryDark,
+                            fontSize = 17.sp,
+                            fontWeight = FontWeight.Bold
+                        )
+                        Text(
+                            text = "Phương pháp chuẩn quốc tế đo lường sức mua",
+                            color = TextSecondaryDark,
+                            fontSize = 11.sp
+                        )
+                    }
                 }
             },
             text = {
-                Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
+                Column(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .heightIn(max = 480.dp)
+                        .verticalScroll(scrollState),
+                    verticalArrangement = Arrangement.spacedBy(10.dp)
+                ) {
                     Text(
-                        text = "Chỉ số này so sánh xem người dân mỗi nước phải làm việc bao nhiêu phút (dựa trên mức lương bình quân 8 giờ/ngày) để đổ được 1 lít xăng.",
+                        text = "Chỉ nhìn giá tiền (đ/L) chưa đủ, vì 50.000đ ở nước phát triển rất nhẹ, nhưng ở nước nghèo lại là gánh nặng lớn. Vì vậy, chỉ số \"Số phút làm việc để mua 1L xăng\" phản ánh chính xác nhất mức độ rẻ/đắt đối với người dân bản địa.",
                         color = TextPrimaryDark,
-                        fontSize = 13.sp,
-                        lineHeight = 18.sp
-                    )
-
-                    HorizontalDivider(color = DarkSurfaceVariant)
-
-                    Text(
-                        text = "📌 Ví dụ thực tế dễ hiểu:",
-                        color = EnergyAmber,
-                        fontSize = 13.sp,
-                        fontWeight = FontWeight.Bold
-                    )
-
-                    Text(
-                        text = "• 🇸🇬 Singapore: Xăng ~55.000 đ/L (nghe rất đắt), nhưng lương họ cao nên chỉ cần làm việc ~4 phút là mua được 1 lít!\n\n" +
-                               "• 🇲🇾 Malaysia: Nhờ chính phủ trợ giá xăng, người dân chỉ mất ~6 phút làm việc/Lít.\n\n" +
-                               "• 🇻🇳 Việt Nam: Xăng ~28.000 đ/L, người dân cần làm việc ~41 phút để mua 1 lít.\n\n" +
-                               "• 🇱🇦 Lào: Xăng ~35.000 đ/L, nhưng người dân phải làm việc tới ~2 giờ 5 phút mới mua được 1 lít.",
-                        color = TextSecondaryDark,
                         fontSize = 12.sp,
                         lineHeight = 17.sp
                     )
 
+                    // KHỐI CÔNG THỨC CHUẨN TOÁN HỌC
                     Surface(
-                        color = PetrolTeal.copy(alpha = 0.15f),
+                        color = DarkBackground,
+                        shape = RoundedCornerShape(10.dp),
+                        border = androidx.compose.foundation.BorderStroke(1.dp, PetrolTeal.copy(alpha = 0.6f)),
+                        modifier = Modifier.fillMaxWidth()
+                    ) {
+                        Column(modifier = Modifier.padding(12.dp)) {
+                            Text(
+                                text = "⚡ CÔNG THỨC TOÁN HỌC:",
+                                color = PetrolTeal,
+                                fontSize = 11.sp,
+                                fontWeight = FontWeight.Bold
+                            )
+                            Spacer(modifier = Modifier.height(6.dp))
+                            Text(
+                                text = "Số phút làm việc = ( Giá 1L xăng ÷ Thu nhập 1 ngày ) × 480 phút",
+                                color = TextPrimaryDark,
+                                fontSize = 12.sp,
+                                fontWeight = FontWeight.SemiBold
+                            )
+                            Spacer(modifier = Modifier.height(4.dp))
+                            Text(
+                                text = "• Quy chuẩn quốc tế: 1 ngày làm việc chuẩn = 8 tiếng = 480 phút.\n" +
+                                       "• Hoặc: Thu nhập 1 phút = Thu nhập ngày ÷ 480.\n" +
+                                       "  ➔ Số phút = Giá 1L xăng ÷ Thu nhập 1 phút.",
+                                color = TextSecondaryDark,
+                                fontSize = 11.sp,
+                                lineHeight = 15.sp
+                            )
+                        }
+                    }
+
+                    // VÍ DỤ TỪNG BƯỚC TẠI VIỆT NAM
+                    Surface(
+                        color = EnergyAmber.copy(alpha = 0.08f),
+                        shape = RoundedCornerShape(10.dp),
+                        border = androidx.compose.foundation.BorderStroke(1.dp, EnergyAmber.copy(alpha = 0.4f)),
+                        modifier = Modifier.fillMaxWidth()
+                    ) {
+                        Column(modifier = Modifier.padding(12.dp)) {
+                            Text(
+                                text = "🇻🇳 VÍ DỤ TÍNH THỰC TẾ (VIỆT NAM):",
+                                color = EnergyAmber,
+                                fontSize = 11.sp,
+                                fontWeight = FontWeight.Bold
+                            )
+                            Spacer(modifier = Modifier.height(6.dp))
+                            Text(
+                                text = "1. Thu nhập bình quân: ~325.000 đ/ngày (~13 USD, lương ~7.8 triệu/tháng).\n" +
+                                       "2. Thu nhập mỗi phút: 325.000 đ ÷ 480 phút = ~677 đ/phút.\n" +
+                                       "3. Giá 1L xăng RON 95: ~28.000 đ/Lít.\n" +
+                                       "➔ Thời gian làm việc: 28.000 đ ÷ 677 đ = ~41 phút làm việc/Lít.",
+                                color = TextPrimaryDark,
+                                fontSize = 11.sp,
+                                lineHeight = 16.sp
+                            )
+                        }
+                    }
+
+                    // SO SÁNH QUỐC TẾ
+                    Text(
+                        text = "📌 So sánh nhanh với các nước:",
+                        color = TextPrimaryDark,
+                        fontSize = 12.sp,
+                        fontWeight = FontWeight.Bold
+                    )
+                    Text(
+                        text = "• 🇸🇬 Singapore: Xăng ~55.000 đ/L, nhưng lương ~230 USD/ngày (11.980 đ/phút) ➔ Chỉ mất ~4.5 phút làm việc/Lít.\n\n" +
+                               "• 🇲🇾 Malaysia: Nhờ chính phủ trợ giá xăng, người dân chỉ mất ~6 phút làm việc/Lít.\n\n" +
+                               "• 🇱🇦 Lào: Xăng ~35.000 đ/L, thu nhập ~6 USD/ngày (312 đ/phút) ➔ Phải làm việc tới ~126 phút (~2 giờ 6 phút)/Lít.",
+                        color = TextSecondaryDark,
+                        fontSize = 11.sp,
+                        lineHeight = 16.sp
+                    )
+
+                    // NGUỒN DỮ LIỆU MINH BẠCH
+                    Surface(
+                        color = DarkBackground,
                         shape = RoundedCornerShape(8.dp),
                         modifier = Modifier.fillMaxWidth()
                     ) {
-                        Text(
-                            text = "👉 Thời gian làm việc càng ít nghĩa là xăng càng rẻ và nhẹ gánh đối với người dân nước đó.",
-                            color = PetrolTeal,
-                            fontSize = 12.sp,
-                            fontWeight = FontWeight.Medium,
-                            modifier = Modifier.padding(8.dp)
-                        )
+                        Row(
+                            modifier = Modifier.padding(8.dp),
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            Text(text = "🏛️", fontSize = 16.sp)
+                            Spacer(modifier = Modifier.width(6.dp))
+                            Text(
+                                text = "Nguồn dữ liệu: Giá xăng từ GlobalPetrolPrices & Bộ Công Thương. Thu nhập bình quân từ Ngân hàng Thế giới (World Bank) & Tổ chức Lao động Quốc tế (ILO).",
+                                color = TextSecondaryDark,
+                                fontSize = 10.sp,
+                                lineHeight = 14.sp
+                            )
+                        }
                     }
                 }
             },
@@ -461,7 +541,7 @@ fun WorldCompareScreen(
                     onClick = { showInfoDialog = false },
                     colors = ButtonDefaults.buttonColors(containerColor = PetrolTeal)
                 ) {
-                    Text("Đã hiểu", color = androidx.compose.ui.graphics.Color.Black, fontWeight = FontWeight.Bold)
+                    Text("Đã hiểu rõ", color = androidx.compose.ui.graphics.Color.Black, fontWeight = FontWeight.Bold)
                 }
             }
         )
