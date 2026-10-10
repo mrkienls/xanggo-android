@@ -17,6 +17,9 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import android.content.Context
+import android.content.Intent
+import android.net.Uri
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.ui.platform.LocalContext
 import com.example.xanggo.data.model.FuelItem
 import com.example.xanggo.data.model.VietnamFuelData
@@ -260,12 +263,17 @@ fun VietnamFuelScreen(
             }
         }
 
-        // 4. Vị trí AdMob Native Ad (Theo kế hoạch đã phê duyệt)
+        // 4. Thẻ Trạm xăng quanh bạn (Smart Fuel Radar - 1 Chạm dẫn đường)
+        item {
+            NearbyFuelRadarCard(context = context)
+        }
+
+        // 5. Vị trí AdMob Native Ad (Theo kế hoạch đã phê duyệt)
         item {
             AdMobNativePlaceholder()
         }
 
-        // 5. Thẻ Xem nhanh So sánh ASEAN (CTA sang màn hình 2)
+        // 6. Thẻ Xem nhanh So sánh ASEAN (CTA sang màn hình 2)
         item {
             Card(
                 modifier = Modifier
@@ -836,5 +844,191 @@ fun removeAccents(str: String): String {
         pattern.matcher(nfd).replaceAll("").replace("đ", "d").replace("Đ", "D").lowercase().trim()
     } catch (e: Exception) {
         str.lowercase().trim()
+    }
+}
+
+@Composable
+fun NearbyFuelRadarCard(
+    context: Context,
+    modifier: Modifier = Modifier
+) {
+    Card(
+        modifier = modifier
+            .fillMaxWidth()
+            .clip(RoundedCornerShape(16.dp)),
+        colors = CardDefaults.cardColors(containerColor = DarkSurface),
+        border = androidx.compose.foundation.BorderStroke(1.dp, PetrolTeal.copy(alpha = 0.35f))
+    ) {
+        Column(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(14.dp)
+        ) {
+            // Header: Icon + Title + GPS status badge
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Box(
+                        modifier = Modifier
+                            .size(34.dp)
+                            .clip(CircleShape)
+                            .background(PetrolTeal.copy(alpha = 0.15f)),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Text(text = "📍", fontSize = 16.sp)
+                    }
+                    Spacer(modifier = Modifier.width(10.dp))
+                    Column {
+                        Text(
+                            text = "Trạm Xăng Quanh Bạn",
+                            color = TextPrimaryDark,
+                            fontSize = 15.sp,
+                            fontWeight = FontWeight.Bold
+                        )
+                        Text(
+                            text = "Chỉ đường bằng giọng nói 1-chạm",
+                            color = TextSecondaryDark,
+                            fontSize = 11.sp
+                        )
+                    }
+                }
+
+                Surface(
+                    color = PriceGreen.copy(alpha = 0.15f),
+                    shape = RoundedCornerShape(12.dp)
+                ) {
+                    Row(
+                        modifier = Modifier.padding(horizontal = 8.dp, vertical = 3.dp),
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Box(
+                            modifier = Modifier
+                                .size(6.dp)
+                                .clip(CircleShape)
+                                .background(PriceGreen)
+                        )
+                        Spacer(modifier = Modifier.width(5.dp))
+                        Text(
+                            text = "Vệ tinh GPS",
+                            color = PriceGreen,
+                            fontSize = 10.5.sp,
+                            fontWeight = FontWeight.SemiBold
+                        )
+                    }
+                }
+            }
+
+            Spacer(modifier = Modifier.height(12.dp))
+
+            // 3 Quick action buttons
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.spacedBy(8.dp)
+            ) {
+                FuelRadarActionChip(
+                    title = "Gần nhất",
+                    subtitle = "Mọi hãng",
+                    icon = "🧭",
+                    accentColor = PetrolTeal,
+                    onClick = { openMapsSearch(context, "cây xăng gần đây") },
+                    modifier = Modifier.weight(1f)
+                )
+
+                FuelRadarActionChip(
+                    title = "Petrolimex",
+                    subtitle = "Chính hãng",
+                    icon = "🟠",
+                    accentColor = Color(0xFFF97316),
+                    onClick = { openMapsSearch(context, "cây xăng Petrolimex gần đây") },
+                    modifier = Modifier.weight(1f)
+                )
+
+                FuelRadarActionChip(
+                    title = "PVOIL",
+                    subtitle = "PVcom/App",
+                    icon = "🔵",
+                    accentColor = Color(0xFF38BDF8),
+                    onClick = { openMapsSearch(context, "cây xăng PVOIL gần đây") },
+                    modifier = Modifier.weight(1f)
+                )
+            }
+        }
+    }
+}
+
+@Composable
+fun FuelRadarActionChip(
+    title: String,
+    subtitle: String,
+    icon: String,
+    accentColor: Color,
+    onClick: () -> Unit,
+    modifier: Modifier = Modifier
+) {
+    Surface(
+        color = accentColor.copy(alpha = 0.08f),
+        shape = RoundedCornerShape(12.dp),
+        border = androidx.compose.foundation.BorderStroke(1.dp, accentColor.copy(alpha = 0.35f)),
+        modifier = modifier
+            .clip(RoundedCornerShape(12.dp))
+            .clickable { onClick() }
+    ) {
+        Column(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(vertical = 10.dp, horizontal = 6.dp),
+            horizontalAlignment = Alignment.CenterHorizontally
+        ) {
+            Text(text = icon, fontSize = 20.sp)
+            Spacer(modifier = Modifier.height(4.dp))
+            Text(
+                text = title,
+                color = TextPrimaryDark,
+                fontSize = 12.sp,
+                fontWeight = FontWeight.Bold,
+                maxLines = 1,
+                softWrap = false
+            )
+            Spacer(modifier = Modifier.height(2.dp))
+            Text(
+                text = subtitle,
+                color = accentColor,
+                fontSize = 10.sp,
+                fontWeight = FontWeight.Medium,
+                maxLines = 1,
+                softWrap = false
+            )
+        }
+    }
+}
+
+fun openMapsSearch(context: Context, query: String) {
+    try {
+        val uri = Uri.parse("geo:0,0?q=${Uri.encode(query)}")
+        val mapIntent = Intent(Intent.ACTION_VIEW, uri).apply {
+            setPackage("com.google.android.apps.maps")
+            flags = Intent.FLAG_ACTIVITY_NEW_TASK
+        }
+        if (mapIntent.resolveActivity(context.packageManager) != null) {
+            context.startActivity(mapIntent)
+        } else {
+            // Mở link Google Maps web nếu app bản đồ chưa cài đặt
+            val webUri = Uri.parse("https://www.google.com/maps/search/?api=1&query=${Uri.encode(query)}")
+            val browserIntent = Intent(Intent.ACTION_VIEW, webUri).apply {
+                flags = Intent.FLAG_ACTIVITY_NEW_TASK
+            }
+            context.startActivity(browserIntent)
+        }
+    } catch (e: Exception) {
+        try {
+            val webUri = Uri.parse("https://www.google.com/maps/search/${Uri.encode(query)}")
+            val browserIntent = Intent(Intent.ACTION_VIEW, webUri).apply {
+                flags = Intent.FLAG_ACTIVITY_NEW_TASK
+            }
+            context.startActivity(browserIntent)
+        } catch (_: Exception) {}
     }
 }
