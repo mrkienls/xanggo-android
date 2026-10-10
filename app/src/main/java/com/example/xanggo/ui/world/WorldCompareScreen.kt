@@ -8,12 +8,15 @@ import androidx.compose.foundation.verticalScroll
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.lazy.rememberLazyListState
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
+import kotlin.math.roundToInt
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -89,6 +92,18 @@ fun WorldCompareScreen(
         filteredCountries.maxOfOrNull { it.priceUsd } ?: 3.0
     }
 
+    val vnCountry = remember(data.countries) {
+        data.countries.find { it.isCurrent || it.code == "VN" }
+    }
+    val vnPriceUsd = vnCountry?.priceUsd ?: 1.09
+    val vnWorkMinutes = remember(vnCountry) {
+        if (vnCountry != null && vnCountry.dailyIncomeUsd > 0) {
+            (vnCountry.priceUsd / vnCountry.dailyIncomeUsd) * 480
+        } else {
+            41.0
+        }
+    }
+
     // Format ngày giờ sạch đẹp từ chuỗi ISO
     val displayDate = remember(data.updatedAt) {
         formatDisplayDate(data.updatedAt)
@@ -120,26 +135,46 @@ fun WorldCompareScreen(
                     verticalAlignment = Alignment.CenterVertically
                 ) {
                     Row(verticalAlignment = Alignment.CenterVertically) {
-                        Text(
-                            text = "Giá Xăng Thế Giới",
-                            color = TextPrimaryDark,
-                            fontSize = 20.sp,
-                            fontWeight = FontWeight.Bold
-                        )
+                        Surface(
+                            color = PetrolTeal.copy(alpha = 0.15f),
+                            shape = CircleShape,
+                            modifier = Modifier.size(36.dp)
+                        ) {
+                            Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+                                Text(text = "🌐", fontSize = 18.sp)
+                            }
+                        }
 
-                        Spacer(modifier = Modifier.width(6.dp))
+                        Spacer(modifier = Modifier.width(8.dp))
+
+                        Row(verticalAlignment = Alignment.CenterVertically) {
+                            Text(
+                                text = "Giá Xăng ",
+                                color = TextPrimaryDark,
+                                fontSize = 18.sp,
+                                fontWeight = FontWeight.Bold
+                            )
+                            Text(
+                                text = "Thế Giới",
+                                color = PetrolTeal,
+                                fontSize = 18.sp,
+                                fontWeight = FontWeight.Bold
+                            )
+                        }
+
+                        Spacer(modifier = Modifier.width(4.dp))
 
                         // Nút (?) giải thích sức mua
                         IconButton(
                             onClick = { showInfoDialog = true },
-                            modifier = Modifier.size(32.dp)
+                            modifier = Modifier.size(28.dp)
                         ) {
                             Surface(
                                 color = PetrolTeal.copy(alpha = 0.2f),
-                                shape = RoundedCornerShape(16.dp)
+                                shape = CircleShape
                             ) {
                                 Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-                                    Text(text = "💡", fontSize = 15.sp)
+                                    Text(text = "💡", fontSize = 13.sp)
                                 }
                             }
                         }
@@ -380,23 +415,125 @@ fun WorldCompareScreen(
                 }
             }
 
+            // Table Column Header (Chỉ hiển thị khi có dữ liệu)
+            if (filteredCountries.isNotEmpty()) {
+                item {
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(horizontal = 8.dp, vertical = 2.dp),
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Text(
+                            text = "#",
+                            color = TextSecondaryDark,
+                            fontSize = 11.sp,
+                            fontWeight = FontWeight.SemiBold,
+                            modifier = Modifier.width(24.dp)
+                        )
+                        Text(
+                            text = "Quốc gia",
+                            color = TextSecondaryDark,
+                            fontSize = 11.sp,
+                            fontWeight = FontWeight.SemiBold,
+                            modifier = Modifier.weight(1f)
+                        )
+                        Text(
+                            text = if (selectedCurrency == "VND") "Giá xăng (đ/L)" else "Giá xăng ($/L)",
+                            color = TextSecondaryDark,
+                            fontSize = 11.sp,
+                            fontWeight = FontWeight.SemiBold,
+                            modifier = Modifier.padding(end = 12.dp)
+                        )
+                        Text(
+                            text = "So với VN",
+                            color = TextSecondaryDark,
+                            fontSize = 11.sp,
+                            fontWeight = FontWeight.SemiBold
+                        )
+                    }
+                }
+            }
+
             // 7. Danh sách các quốc gia
             itemsIndexed(filteredCountries) { index, country ->
                 CountryFuelRow(
                     index = index + 1,
                     country = country,
                     maxPriceUsd = maxPriceUsd,
+                    vnPriceUsd = vnPriceUsd,
+                    vnWorkMinutes = vnWorkMinutes,
                     currency = selectedCurrency,
                     currencyFormat = currencyFormat,
                     onInfoClick = { showInfoDialog = true }
                 )
             }
 
-        item {
-            Spacer(modifier = Modifier.height(80.dp)) // Tránh che banner đáy
+            // 8. Bảng chú thích biểu đồ & ký hiệu (Legend Bar)
+            if (filteredCountries.isNotEmpty()) {
+                item {
+                    Surface(
+                        color = DarkSurface.copy(alpha = 0.7f),
+                        shape = RoundedCornerShape(12.dp),
+                        border = androidx.compose.foundation.BorderStroke(1.dp, DarkSurfaceVariant.copy(alpha = 0.6f)),
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(top = 4.dp)
+                    ) {
+                        Row(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(horizontal = 12.dp, vertical = 9.dp),
+                            horizontalArrangement = Arrangement.SpaceAround,
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            Row(verticalAlignment = Alignment.CenterVertically) {
+                                Box(
+                                    modifier = Modifier
+                                        .size(8.dp)
+                                        .clip(CircleShape)
+                                        .background(PetrolTeal)
+                                )
+                                Spacer(modifier = Modifier.width(5.dp))
+                                Text(
+                                    text = "Rẻ hơn VN",
+                                    color = TextSecondaryDark,
+                                    fontSize = 11.sp
+                                )
+                            }
+                            Row(verticalAlignment = Alignment.CenterVertically) {
+                                Box(
+                                    modifier = Modifier
+                                        .size(8.dp)
+                                        .clip(CircleShape)
+                                        .background(Color(0xFF38BDF8))
+                                )
+                                Spacer(modifier = Modifier.width(5.dp))
+                                Text(
+                                    text = "Cao hơn VN",
+                                    color = TextSecondaryDark,
+                                    fontSize = 11.sp
+                                )
+                            }
+                            Row(verticalAlignment = Alignment.CenterVertically) {
+                                Text(text = "⏱️", fontSize = 11.sp)
+                                Spacer(modifier = Modifier.width(4.dp))
+                                Text(
+                                    text = "Số phút làm/L",
+                                    color = TextSecondaryDark,
+                                    fontSize = 11.sp
+                                )
+                            }
+                        }
+                    }
+                }
+            }
+
+            item {
+                Spacer(modifier = Modifier.height(80.dp)) // Tránh che banner đáy
+            }
         }
     }
-}
 
     // HỘP THOẠI GIẢI THÍCH CÔNG THỨC & SỨC MUA MINH BẠCH
     if (showInfoDialog) {
@@ -598,6 +735,8 @@ fun CountryFuelRow(
     index: Int,
     country: CountryFuel,
     maxPriceUsd: Double,
+    vnPriceUsd: Double,
+    vnWorkMinutes: Double,
     currency: String,
     currencyFormat: NumberFormat,
     onInfoClick: () -> Unit
@@ -610,14 +749,19 @@ fun CountryFuelRow(
     } else {
         0.0
     }
+    val diffMinutes = (workingMinutes - vnWorkMinutes).roundToInt()
 
-    val workingTimeDisplay = when {
-        workingMinutes < 1.0 -> "~1 phút"
-        workingMinutes < 60.0 -> "~${workingMinutes.toInt()} phút"
+    // Phụ đề dưới tên quốc gia
+    val subtagText = when {
+        isVn -> "Chuẩn đối chiếu Việt Nam"
+        country.note.isNotBlank() -> country.note
+        country.priceUsd < vnPriceUsd -> {
+            val percentCheaper = ((1.0 - country.priceUsd / vnPriceUsd) * 100).roundToInt()
+            "Rẻ hơn VN $percentCheaper%"
+        }
         else -> {
-            val hours = (workingMinutes / 60).toInt()
-            val mins = (workingMinutes % 60).toInt()
-            if (mins > 0) "~${hours}h ${mins}p" else "~${hours}h"
+            val percentHigher = ((country.priceUsd / vnPriceUsd - 1.0) * 100).roundToInt()
+            "Cao hơn VN $percentHigher%"
         }
     }
 
@@ -627,86 +771,119 @@ fun CountryFuelRow(
         colors = CardDefaults.cardColors(
             containerColor = if (isVn) PetrolTeal.copy(alpha = 0.12f) else DarkSurface
         ),
-        border = if (isVn) androidx.compose.foundation.BorderStroke(1.dp, PetrolTeal.copy(alpha = 0.6f)) else null
+        border = if (isVn) {
+            androidx.compose.foundation.BorderStroke(1.5.dp, PetrolTeal)
+        } else {
+            androidx.compose.foundation.BorderStroke(1.dp, DarkSurfaceVariant.copy(alpha = 0.4f))
+        }
     ) {
-        Column(modifier = Modifier.padding(14.dp)) {
+        Column(modifier = Modifier.padding(horizontal = 14.dp, vertical = 12.dp)) {
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.SpaceBetween,
                 verticalAlignment = Alignment.CenterVertically
             ) {
-                Row(verticalAlignment = Alignment.CenterVertically) {
+                // Bên trái: Số thứ tự + Cờ + Tên quốc gia + Subtag
+                Row(
+                    modifier = Modifier.weight(1f),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
                     Text(
                         text = "$index.",
                         color = TextSecondaryDark,
-                        fontSize = 13.sp,
+                        fontSize = 12.sp,
                         fontWeight = FontWeight.Bold,
                         modifier = Modifier.width(24.dp)
                     )
-                    Text(text = country.flag, fontSize = 20.sp)
+                    Text(text = country.flag, fontSize = 22.sp)
                     Spacer(modifier = Modifier.width(8.dp))
-                    Text(
-                        text = country.name,
-                        color = if (isVn) PetrolTeal else TextPrimaryDark,
-                        fontSize = 14.sp,
-                        fontWeight = if (isVn) FontWeight.Bold else FontWeight.SemiBold
-                    )
-                }
-
-                // Con số giá tiền
-                val priceText = if (currency == "USD") {
-                    "$${country.priceUsd}/L"
-                } else {
-                    "${currencyFormat.format(country.priceVnd)} đ/L"
-                }
-
-                Text(
-                    text = priceText,
-                    color = TextPrimaryDark,
-                    fontSize = 14.sp,
-                    fontWeight = FontWeight.Bold
-                )
-            }
-
-            Spacer(modifier = Modifier.height(10.dp))
-
-            // Thanh tỉ lệ so sánh trực quan
-            val ratio = (country.priceUsd / maxPriceUsd).toFloat().coerceIn(0.05f, 1f)
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                LinearProgressIndicator(
-                    progress = { ratio },
-                    modifier = Modifier
-                        .weight(1f)
-                        .height(8.dp)
-                        .clip(RoundedCornerShape(4.dp)),
-                    color = if (isVn) PetrolTeal else EnergyAmber,
-                    trackColor = DarkSurfaceVariant
-                )
-
-                Spacer(modifier = Modifier.width(10.dp))
-
-                // Tag Thời Gian Làm Việc Để Mua 1L Xăng (Dễ hiểu ngay)
-                Surface(
-                    color = if (isVn) PetrolTeal.copy(alpha = 0.2f) else DarkSurfaceVariant.copy(alpha = 0.8f),
-                    shape = RoundedCornerShape(8.dp),
-                    modifier = Modifier.clickable { onInfoClick() }
-                ) {
-                    Row(
-                        modifier = Modifier.padding(horizontal = 7.dp, vertical = 3.dp),
-                        verticalAlignment = Alignment.CenterVertically
-                    ) {
+                    Column {
                         Text(
-                            text = "⏱️ $workingTimeDisplay/L",
-                            color = if (isVn) PetrolTeal else if (workingMinutes > 60.0) PriceRed else TextPrimaryDark,
+                            text = country.name,
+                            color = if (isVn) PetrolTeal else TextPrimaryDark,
+                            fontSize = 14.sp,
+                            fontWeight = if (isVn) FontWeight.Bold else FontWeight.SemiBold
+                        )
+                        Text(
+                            text = subtagText,
+                            color = if (isVn) PetrolTeal.copy(alpha = 0.85f) else TextSecondaryDark,
                             fontSize = 11.sp,
-                            fontWeight = FontWeight.SemiBold
+                            maxLines = 1
+                        )
+                    }
+                }
+
+                Spacer(modifier = Modifier.width(8.dp))
+
+                // Bên phải: Giá tiền + Pill so sánh tương quan số phút
+                Column(horizontalAlignment = Alignment.End) {
+                    val priceText = if (currency == "USD") {
+                        "$${country.priceUsd}/L"
+                    } else {
+                        "${currencyFormat.format(country.priceVnd)} đ/L"
+                    }
+
+                    Text(
+                        text = priceText,
+                        color = TextPrimaryDark,
+                        fontSize = 14.sp,
+                        fontWeight = FontWeight.Bold
+                    )
+
+                    Spacer(modifier = Modifier.height(3.dp))
+
+                    // Pill so với VN (Thời gian làm việc)
+                    Surface(
+                        color = when {
+                            isVn -> PetrolTeal.copy(alpha = 0.2f)
+                            diffMinutes < 0 -> PetrolTeal.copy(alpha = 0.15f)
+                            diffMinutes > 0 -> Color(0xFF38BDF8).copy(alpha = 0.15f)
+                            else -> DarkSurfaceVariant.copy(alpha = 0.6f)
+                        },
+                        shape = RoundedCornerShape(6.dp),
+                        modifier = Modifier.clickable { onInfoClick() }
+                    ) {
+                        val badgeText = when {
+                            isVn -> "⏱ ~${workingMinutes.roundToInt()} ph/L"
+                            diffMinutes < 0 -> "⏱ $diffMinutes ph/L"
+                            diffMinutes > 0 -> "⏱ +$diffMinutes ph/L"
+                            else -> "⏱ Bằng VN"
+                        }
+                        val badgeColor = when {
+                            isVn -> PetrolTeal
+                            diffMinutes < 0 -> PetrolTeal
+                            diffMinutes > 0 -> Color(0xFF38BDF8)
+                            else -> TextSecondaryDark
+                        }
+
+                        Text(
+                            text = badgeText,
+                            color = badgeColor,
+                            fontSize = 10.5.sp,
+                            fontWeight = FontWeight.SemiBold,
+                            modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp),
+                            maxLines = 1,
+                            softWrap = false
                         )
                     }
                 }
             }
+
+            Spacer(modifier = Modifier.height(10.dp))
+
+            // Thanh tỉ lệ so sánh trực quan (Dual-tone: PetrolTeal nếu rẻ hơn hoặc bằng VN, Slate Blue nếu đắt hơn)
+            val ratio = (country.priceUsd / maxPriceUsd).toFloat().coerceIn(0.04f, 1f)
+            val barColor = if (country.priceUsd <= vnPriceUsd) PetrolTeal else Color(0xFF38BDF8)
+
+            LinearProgressIndicator(
+                progress = { ratio },
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(6.dp)
+                    .clip(RoundedCornerShape(3.dp)),
+                color = barColor,
+                trackColor = DarkSurfaceVariant.copy(alpha = 0.5f)
+            )
         }
     }
 }
