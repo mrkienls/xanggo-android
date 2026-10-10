@@ -24,6 +24,7 @@ import androidx.compose.ui.platform.LocalContext
 import com.example.xanggo.data.model.FuelItem
 import com.example.xanggo.data.model.VietnamFuelData
 import com.example.xanggo.theme.*
+import com.example.xanggo.ui.components.LocationPinVector
 import com.example.xanggo.ui.components.PriceHistoryChartCard
 import java.text.Normalizer
 import java.text.NumberFormat
@@ -878,12 +879,25 @@ fun NearbyFuelRadarCard(
                 Row(verticalAlignment = Alignment.CenterVertically) {
                     Box(
                         modifier = Modifier
-                            .size(34.dp)
+                            .size(36.dp)
                             .clip(CircleShape)
-                            .background(PetrolTeal.copy(alpha = 0.15f)),
+                            .background(
+                                Brush.radialGradient(
+                                    listOf(
+                                        Color(0xFF14B8A6),
+                                        Color(0xFF0D9488),
+                                        Color(0xFF042F2E)
+                                    )
+                                )
+                            ),
                         contentAlignment = Alignment.Center
                     ) {
-                        Text(text = "📍", fontSize = 16.sp)
+                        Icon(
+                            imageVector = LocationPinVector,
+                            contentDescription = null,
+                            tint = Color.White,
+                            modifier = Modifier.size(20.dp)
+                        )
                     }
                     Spacer(modifier = Modifier.width(10.dp))
                     Column {

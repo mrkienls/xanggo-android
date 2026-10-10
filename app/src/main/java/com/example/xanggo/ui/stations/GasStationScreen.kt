@@ -25,6 +25,8 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.example.xanggo.theme.*
+import com.example.xanggo.ui.components.GasPumpVector
+import com.example.xanggo.ui.components.LocationPinVector
 import java.text.Normalizer
 import java.util.regex.Pattern
 
@@ -152,14 +154,26 @@ fun GasStationScreen() {
                 verticalAlignment = Alignment.CenterVertically
             ) {
                 Row(verticalAlignment = Alignment.CenterVertically) {
-                    Surface(
-                        color = PetrolTeal.copy(alpha = 0.15f),
-                        shape = CircleShape,
-                        modifier = Modifier.size(38.dp)
+                    Box(
+                        modifier = Modifier
+                            .size(38.dp)
+                            .clip(CircleShape)
+                            .background(
+                                Brush.radialGradient(
+                                    listOf(
+                                        PetrolTeal.copy(alpha = 0.25f),
+                                        PetrolTeal.copy(alpha = 0.08f)
+                                    )
+                                )
+                            ),
+                        contentAlignment = Alignment.Center
                     ) {
-                        Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-                            Text(text = "📍", fontSize = 19.sp)
-                        }
+                        Icon(
+                            imageVector = LocationPinVector,
+                            contentDescription = null,
+                            tint = PetrolTeal,
+                            modifier = Modifier.size(22.dp)
+                        )
                     }
 
                     Spacer(modifier = Modifier.width(10.dp))
@@ -268,14 +282,27 @@ fun GasStationScreen() {
                             modifier = Modifier.weight(1f),
                             verticalAlignment = Alignment.CenterVertically
                         ) {
-                            Surface(
-                                color = PetrolTeal.copy(alpha = 0.18f),
-                                shape = CircleShape,
-                                modifier = Modifier.size(44.dp)
+                            Box(
+                                modifier = Modifier
+                                    .size(48.dp)
+                                    .clip(CircleShape)
+                                    .background(
+                                        Brush.radialGradient(
+                                            listOf(
+                                                Color(0xFF14B8A6),
+                                                Color(0xFF0D9488),
+                                                Color(0xFF042F2E)
+                                            )
+                                        )
+                                    ),
+                                contentAlignment = Alignment.Center
                             ) {
-                                Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-                                    Text(text = "📍", fontSize = 22.sp)
-                                }
+                                Icon(
+                                    imageVector = LocationPinVector,
+                                    contentDescription = null,
+                                    tint = Color.White,
+                                    modifier = Modifier.size(26.dp)
+                                )
                             }
                             Spacer(modifier = Modifier.width(10.dp))
                             Column {
@@ -458,8 +485,13 @@ fun GasStationScreen() {
                             // Thông tin cây xăng gần nhất bên phải
                             Column(modifier = Modifier.weight(1f)) {
                                 Row(verticalAlignment = Alignment.CenterVertically) {
-                                    Text(text = "📍", fontSize = 12.sp)
-                                    Spacer(modifier = Modifier.width(4.dp))
+                                    Icon(
+                                        imageVector = LocationPinVector,
+                                        contentDescription = null,
+                                        tint = PetrolTeal,
+                                        modifier = Modifier.size(13.dp)
+                                    )
+                                    Spacer(modifier = Modifier.width(5.dp))
                                     Text(
                                         text = "Gần bạn nhất: 0.8 km • 3 phút",
                                         color = TextPrimaryDark,
@@ -675,15 +707,26 @@ fun StationDetailCard(
                     color = PetrolTeal.copy(alpha = 0.15f),
                     shape = RoundedCornerShape(10.dp)
                 ) {
-                    Text(
-                        text = "📍 ${station.distance}",
-                        color = PetrolTeal,
-                        fontSize = 11.sp,
-                        fontWeight = FontWeight.Bold,
+                    Row(
                         modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp),
-                        maxLines = 1,
-                        softWrap = false
-                    )
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Icon(
+                            imageVector = LocationPinVector,
+                            contentDescription = null,
+                            tint = PetrolTeal,
+                            modifier = Modifier.size(12.dp)
+                        )
+                        Spacer(modifier = Modifier.width(4.dp))
+                        Text(
+                            text = station.distance,
+                            color = PetrolTeal,
+                            fontSize = 11.sp,
+                            fontWeight = FontWeight.Bold,
+                            maxLines = 1,
+                            softWrap = false
+                        )
+                    }
                 }
             }
 

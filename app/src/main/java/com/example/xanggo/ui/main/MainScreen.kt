@@ -17,6 +17,9 @@ import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation3.runtime.NavKey
 import com.example.xanggo.data.DefaultFuelRepository
 import com.example.xanggo.theme.*
+import com.example.xanggo.ui.components.GasPumpVector
+import com.example.xanggo.ui.components.GlobeVector
+import com.example.xanggo.ui.components.LocationPinVector
 import com.example.xanggo.ui.stations.GasStationScreen
 import com.example.xanggo.ui.vietnam.VietnamFuelScreen
 import com.example.xanggo.ui.world.WorldCompareScreen
@@ -47,7 +50,13 @@ fun MainScreen(
                     NavigationBarItem(
                         selected = currentTab == 0,
                         onClick = { viewModel.selectTab(0) },
-                        icon = { Text(text = "⛽", fontSize = 20.sp) },
+                        icon = {
+                            Icon(
+                                imageVector = GasPumpVector,
+                                contentDescription = "Giá Xăng",
+                                modifier = Modifier.size(22.dp)
+                            )
+                        },
                         label = {
                             Text(
                                 text = "Giá Xăng",
@@ -59,6 +68,7 @@ fun MainScreen(
                             selectedIconColor = PetrolTeal,
                             selectedTextColor = PetrolTeal,
                             indicatorColor = PetrolTeal.copy(alpha = 0.2f),
+                            unselectedIconColor = TextSecondaryDark,
                             unselectedTextColor = TextSecondaryDark
                         )
                     )
@@ -66,7 +76,13 @@ fun MainScreen(
                     NavigationBarItem(
                         selected = currentTab == 1,
                         onClick = { viewModel.selectTab(1) },
-                        icon = { Text(text = "📍", fontSize = 20.sp) },
+                        icon = {
+                            Icon(
+                                imageVector = LocationPinVector,
+                                contentDescription = "Tìm Trạm Xăng",
+                                modifier = Modifier.size(24.dp)
+                            )
+                        },
                         label = {
                             Text(
                                 text = "Tìm Trạm Xăng",
@@ -78,6 +94,7 @@ fun MainScreen(
                             selectedIconColor = PetrolTeal,
                             selectedTextColor = PetrolTeal,
                             indicatorColor = PetrolTeal.copy(alpha = 0.2f),
+                            unselectedIconColor = TextSecondaryDark,
                             unselectedTextColor = TextSecondaryDark
                         )
                     )
@@ -85,7 +102,13 @@ fun MainScreen(
                     NavigationBarItem(
                         selected = currentTab == 2,
                         onClick = { viewModel.selectTab(2) },
-                        icon = { Text(text = "🌐", fontSize = 20.sp) },
+                        icon = {
+                            Icon(
+                                imageVector = GlobeVector,
+                                contentDescription = "Thế Giới",
+                                modifier = Modifier.size(22.dp)
+                            )
+                        },
                         label = {
                             Text(
                                 text = "Thế Giới",
@@ -97,6 +120,7 @@ fun MainScreen(
                             selectedIconColor = PetrolTeal,
                             selectedTextColor = PetrolTeal,
                             indicatorColor = PetrolTeal.copy(alpha = 0.2f),
+                            unselectedIconColor = TextSecondaryDark,
                             unselectedTextColor = TextSecondaryDark
                         )
                     )
