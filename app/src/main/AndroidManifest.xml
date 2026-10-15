@@ -37,6 +37,30 @@
                 <category android:name="android.intent.category.LAUNCHER" />
             </intent-filter>
         </activity>
+
+        <!-- FileProvider hỗ trợ chia sẻ ảnh bảng giá xăng & infographic -->
+        <provider
+            android:name="androidx.core.content.FileProvider"
+            android:authorities="${applicationId}.fileprovider"
+            android:exported="false"
+            android:grantUriPermissions="true">
+            <meta-data
+                android:name="android.support.FILE_PROVIDER_PATHS"
+                android:resource="@xml/file_paths" />
+        </provider>
+
+        <!-- Widget giá xăng ngoài màn hình chính -->
+        <receiver
+            android:name=".widget.XangGoWidgetProvider"
+            android:exported="true"
+            android:label="XăngGo - Giá Xăng">
+            <intent-filter>
+                <action android:name="android.appwidget.action.APPWIDGET_UPDATE" />
+            </intent-filter>
+            <meta-data
+                android:name="android.appwidget.provider"
+                android:resource="@xml/xanggo_widget_info" />
+        </receiver>
     </application>
 
 </manifest>

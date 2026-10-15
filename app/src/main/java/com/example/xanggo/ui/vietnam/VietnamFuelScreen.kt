@@ -20,32 +20,88 @@ import androidx.compose.ui.unit.sp
 import android.content.Context
 import android.content.Intent
 import android.net.Uri
+import androidx.compose.foundation.horizontalScroll
+import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.ui.platform.LocalContext
 import com.example.xanggo.data.model.FuelItem
 import com.example.xanggo.data.model.VietnamFuelData
 import com.example.xanggo.data.model.WorldFuelSummary
+import com.example.xanggo.i18n.AppLang
+import com.example.xanggo.i18n.LocalAppLanguage
+import com.example.xanggo.i18n.tr
+import com.example.xanggo.i18n.translateCountryName
+import com.example.xanggo.i18n.translateFuelName
 import com.example.xanggo.theme.*
 import com.example.xanggo.ui.components.LocationPinVector
 import com.example.xanggo.ui.components.PriceHistoryChartCard
+import com.example.xanggo.util.ShareCardGenerator
+import com.example.xanggo.widget.XangGoWidgetProvider
 import java.text.Normalizer
 import java.text.NumberFormat
 import java.util.Locale
 import java.util.regex.Pattern
+import kotlin.math.abs
+import kotlin.math.roundToInt
+
+data class VehiclePreset(
+    val id: String,
+    val nameVi: String,
+    val nameEn: String,
+    val emoji: String,
+    val tankLiters: Double,
+    val defaultFuelKeyword: String = "ron95"
+)
+
+private val VEHICLE_PRESETS = listOf(
+    VehiclePreset("vision", "Honda Vision", "Honda Vision", "🛵", 4.9, "ron95"),
+    VehiclePreset("airblade", "AirBlade", "AirBlade", "🛵", 4.4, "ron95"),
+    VehiclePreset("wave", "Wave Alpha", "Wave Alpha", "🛵", 3.7, "e5"),
+    VehiclePreset("lead", "Honda Lead", "Honda Lead", "🛵", 6.0, "ron95"),
+    VehiclePreset("sh", "Honda SH", "Honda SH", "🛵", 7.0, "ron95"),
+    VehiclePreset("exciter", "Exciter / Winner", "Exciter / Winner", "🏍️", 5.0, "ron95"),
+    VehiclePreset("sedan", "Ô tô 5 chỗ", "Sedan (45L)", "🚗", 45.0, "ron95"),
+    VehiclePreset("suv", "SUV 7 chỗ", "SUV / CUV (58L)", "🚙", 58.0, "ron95"),
+    VehiclePreset("pickup", "Bán tải Diesel", "Pickup Diesel", "🛻", 76.0, "do")
+)
 
 @Composable
 fun VietnamFuelScreen(
     data: VietnamFuelData,
     worldData: WorldFuelSummary? = null,
     onNavigateToStations: () -> Unit = {},
-    onNavigateToWorld: () -> Unit = {}
+    onNavigateToWorld: () -> Unit = {},
+    onToggleLanguage: () -> Unit = {}
 ) {
     val context = LocalContext.current
+    val lang = LocalAppLanguage.current
     val prefs = remember { context.getSharedPreferences("xanggo_prefs", Context.MODE_PRIVATE) }
     var selectedZone by remember { mutableIntStateOf(prefs.getInt("selected_zone", 1)) }
-    var selectedProvince by remember { mutableStateOf(prefs.getString("selected_province", "Vùng 1 (Giá chuẩn)") ?: "Vùng 1 (Giá chuẩn)") }
+    var selectedProvince by remember { mutableStateOf(prefs.getString("selected_province", "") ?: "") }
+    var selectedVehicleIdx by remember { mutableIntStateOf(prefs.getInt("selected_vehicle_idx", 0).coerceIn(0, VEHICLE_PRESETS.lastIndex)) }
     var showZoneDialog by remember { mutableStateOf(false) }
     val currencyFormat = remember { NumberFormat.getNumberInstance(Locale.GERMANY) }
+
+    // Tự động đồng bộ dữ liệu ra Widget màn hình chính
+    LaunchedEffect(data, selectedZone) {
+        XangGoWidgetProvider.saveAndRefreshWidget(context, data, selectedZone)
+    }
+
+    val currentVehicle = VEHICLE_PRESETS.getOrElse(selectedVehicleIdx) { VEHICLE_PRESETS.first() }
+    val vehicleFuelItem = remember(data.items, currentVehicle) {
+        data.items.firstOrNull {
+            it.id.lowercase().contains(currentVehicle.defaultFuelKeyword) ||
+            it.name.lowercase().contains(currentVehicle.defaultFuelKeyword)
+        } ?: data.items.firstOrNull { it.isFeatured } ?: data.items.first()
+    }
+    val fullTankCost = (vehicleFuelItem.getPrice(selectedZone) * currentVehicle.tankLiters).roundToInt()
+    val fullTankDelta = (vehicleFuelItem.delta * currentVehicle.tankLiters).roundToInt()
+
+    val displayZoneLabel = when {
+        selectedProvince.isNotEmpty() && !selectedProvince.startsWith("Vùng ") -> selectedProvince
+        selectedZone == 1 -> tr("Vùng 1 (Chuẩn)", "Zone 1 (Std)")
+        else -> tr("Vùng 2 (+2%)", "Zone 2 (+2%)")
+    }
 
     LazyColumn(
         modifier = Modifier
@@ -54,7 +110,7 @@ fun VietnamFuelScreen(
             .padding(horizontal = 16.dp),
         verticalArrangement = Arrangement.spacedBy(12.dp)
     ) {
-        // 1. Header: Logo & Region Switcher Đẳng Cấp
+        // 1. Header: Logo & Region Switcher + Nút Ngôn ngữ VI/EN
         item {
             Spacer(modifier = Modifier.height(4.dp))
             Row(
@@ -73,57 +129,65 @@ fun VietnamFuelScreen(
                     ) {
                         Text(text = "⛽", fontSize = 18.sp)
                     }
-                    Spacer(modifier = Modifier.width(10.dp))
+                    Spacer(modifier = Modifier.width(8.dp))
                     Row {
                         Text(
                             text = "Xăng",
                             color = TextPrimaryDark,
-                            fontSize = 24.sp,
+                            fontSize = 23.sp,
                             fontWeight = FontWeight.ExtraBold
                         )
                         Text(
                             text = "Go",
                             color = PetrolTeal,
-                            fontSize = 24.sp,
+                            fontSize = 23.sp,
                             fontWeight = FontWeight.ExtraBold
                         )
                     }
                 }
-                Spacer(modifier = Modifier.width(10.dp))
 
-                // Nút chọn Vùng 1 / Vùng 2 (Pill hiện đại với mũi tên chéo & chevron)
-                Surface(
-                    color = PetrolTeal.copy(alpha = 0.12f),
-                    shape = RoundedCornerShape(20.dp),
-                    border = androidx.compose.foundation.BorderStroke(1.dp, PetrolTeal.copy(alpha = 0.5f)),
-                    modifier = Modifier
-                        .weight(1f, fill = false)
-                        .clickable { showZoneDialog = true }
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(6.dp)
                 ) {
-                    Row(
-                        modifier = Modifier.padding(horizontal = 10.dp, vertical = 6.dp),
-                        verticalAlignment = Alignment.CenterVertically
+                    // Nút chuyển ngôn ngữ nhanh VI / EN
+                    Surface(
+                        color = DarkSurface,
+                        shape = RoundedCornerShape(18.dp),
+                        border = androidx.compose.foundation.BorderStroke(1.dp, DarkSurfaceVariant),
+                        modifier = Modifier.clickable { onToggleLanguage() }
                     ) {
-                        Text(text = "↗ ", color = PetrolTeal, fontSize = 12.sp, fontWeight = FontWeight.Bold, maxLines = 1, softWrap = false)
                         Text(
-                            text = if (selectedProvince.isNotEmpty()) selectedProvince
-                                   else if (selectedZone == 1) "Vùng 1 (Giá chuẩn)"
-                                   else "Vùng 2 (+2% cước)",
-                            color = PetrolTeal,
-                            fontWeight = FontWeight.Bold,
-                            fontSize = 12.sp,
-                            maxLines = 1,
-                            overflow = TextOverflow.Ellipsis,
-                            modifier = Modifier.weight(1f, fill = false)
-                        )
-                        Text(
-                            text = " ›",
-                            color = PetrolTeal,
-                            fontSize = 14.sp,
+                            text = if (lang == AppLang.EN) "🇬🇧 EN" else "🇻🇳 VI",
+                            color = TextPrimaryDark,
+                            fontSize = 11.5.sp,
                             fontWeight = FontWeight.Bold,
                             maxLines = 1,
-                            softWrap = false
+                            softWrap = false,
+                            modifier = Modifier.padding(horizontal = 9.dp, vertical = 6.dp)
                         )
+                    }
+
+                    // Nút chọn Vùng 1 / Vùng 2
+                    Surface(
+                        color = PetrolTeal.copy(alpha = 0.12f),
+                        shape = RoundedCornerShape(20.dp),
+                        border = androidx.compose.foundation.BorderStroke(1.dp, PetrolTeal.copy(alpha = 0.5f)),
+                        modifier = Modifier.clickable { showZoneDialog = true }
+                    ) {
+                        Row(
+                            modifier = Modifier.padding(horizontal = 10.dp, vertical = 6.dp),
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            Text(
+                                text = "📍 $displayZoneLabel ›",
+                                color = PetrolTeal,
+                                fontWeight = FontWeight.Bold,
+                                fontSize = 11.5.sp,
+                                maxLines = 1,
+                                overflow = TextOverflow.Ellipsis
+                            )
+                        }
                     }
                 }
             }
@@ -137,7 +201,7 @@ fun VietnamFuelScreen(
                 verticalAlignment = Alignment.CenterVertically
             ) {
                 Text(
-                    text = "🕒 Cập nhật: ${formatIsoDateTime(data.updatedAt)}",
+                    text = "🕒 ${tr("Cập nhật", "Updated")}: ${formatIsoDateTime(data.updatedAt)}",
                     color = TextSecondaryDark,
                     fontSize = 11.sp,
                     maxLines = 1,
@@ -146,7 +210,7 @@ fun VietnamFuelScreen(
                 )
                 Spacer(modifier = Modifier.width(8.dp))
                 Text(
-                    text = "Nguồn: Petrolimex",
+                    text = tr("Nguồn: Petrolimex", "Source: Petrolimex"),
                     color = TextSecondaryDark,
                     fontSize = 11.sp,
                     maxLines = 1,
@@ -155,7 +219,7 @@ fun VietnamFuelScreen(
             }
         }
 
-        // 2. Hero Card: RON 95-III (Hiệu ứng viền phát sáng & Phần trăm tài chính)
+        // 2. Hero Card: RON 95-III (Hiệu ứng viền phát sáng, % biến động & Nút Chia sẻ nhanh)
         item {
             val heroItem = data.items.firstOrNull { it.isFeatured } ?: data.items.first()
             val currentPrice = heroItem.getPrice(selectedZone)
@@ -182,27 +246,68 @@ fun VietnamFuelScreen(
                 Column(modifier = Modifier.padding(18.dp)) {
                     Row(
                         modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.SpaceBetween,
                         verticalAlignment = Alignment.CenterVertically
                     ) {
-                        Surface(
-                            color = PetrolTeal.copy(alpha = 0.18f),
-                            shape = RoundedCornerShape(8.dp)
+                        Row(
+                            verticalAlignment = Alignment.CenterVertically,
+                            modifier = Modifier.weight(1f, fill = false)
                         ) {
+                            Surface(
+                                color = PetrolTeal.copy(alpha = 0.18f),
+                                shape = RoundedCornerShape(8.dp)
+                            ) {
+                                Text(
+                                    text = "⛽",
+                                    fontSize = 14.sp,
+                                    modifier = Modifier.padding(horizontal = 6.dp, vertical = 4.dp)
+                                )
+                            }
+                            Spacer(modifier = Modifier.width(8.dp))
                             Text(
-                                text = "⛽",
-                                fontSize = 14.sp,
-                                modifier = Modifier.padding(horizontal = 6.dp, vertical = 4.dp)
+                                text = translateFuelName(heroItem.name, lang),
+                                color = TextPrimaryDark,
+                                fontSize = 16.sp,
+                                fontWeight = FontWeight.Bold,
+                                maxLines = 1,
+                                overflow = TextOverflow.Ellipsis
                             )
                         }
-                        Spacer(modifier = Modifier.width(8.dp))
-                        Text(
-                            text = heroItem.name,
-                            color = TextPrimaryDark,
-                            fontSize = 16.sp,
-                            fontWeight = FontWeight.Bold,
-                            maxLines = 1,
-                            overflow = TextOverflow.Ellipsis
-                        )
+
+                        // Nút Chia sẻ bảng giá 1 chạm (Viral Hook)
+                        Surface(
+                            color = PetrolTeal.copy(alpha = 0.16f),
+                            shape = RoundedCornerShape(14.dp),
+                            border = androidx.compose.foundation.BorderStroke(1.dp, PetrolTeal.copy(alpha = 0.4f)),
+                            modifier = Modifier.clickable {
+                                ShareCardGenerator.shareVietnamFuelCard(
+                                    context = context,
+                                    data = data,
+                                    zone = selectedZone,
+                                    provinceLabel = displayZoneLabel,
+                                    vehicleName = if (lang == AppLang.EN) currentVehicle.nameEn else currentVehicle.nameVi,
+                                    tankLiters = currentVehicle.tankLiters,
+                                    selectedFuelName = vehicleFuelItem.name,
+                                    fullTankCost = fullTankCost,
+                                    fullTankDelta = fullTankDelta,
+                                    lang = lang
+                                )
+                            }
+                        ) {
+                            Row(
+                                modifier = Modifier.padding(horizontal = 10.dp, vertical = 5.dp),
+                                verticalAlignment = Alignment.CenterVertically
+                            ) {
+                                Text(
+                                    text = tr("📤 Chia sẻ", "📤 Share"),
+                                    color = PetrolTeal,
+                                    fontSize = 11.5.sp,
+                                    fontWeight = FontWeight.Bold,
+                                    maxLines = 1,
+                                    softWrap = false
+                                )
+                            }
+                        }
                     }
 
                     Spacer(modifier = Modifier.height(10.dp))
@@ -217,7 +322,7 @@ fun VietnamFuelScreen(
                             softWrap = false
                         )
                         Text(
-                            text = " đ/lít",
+                            text = tr(" đ/lít", " VND/L"),
                             color = TextSecondaryDark,
                             fontSize = 16.sp,
                             maxLines = 1,
@@ -233,9 +338,11 @@ fun VietnamFuelScreen(
 
                     Spacer(modifier = Modifier.height(8.dp))
 
-                    // Chống rớt dòng mồ côi chữ đ/lít
+                    val unitShort = tr("đ/lít", "VND/L")
+                    val prevLabel = tr("Kỳ trước", "Prev")
+                    val zLabel = tr("Vùng", "Zone")
                     Text(
-                        text = "Kỳ trước: ${currencyFormat.format(previousPrice)}\u00A0đ/lít  •  Vùng ${if (selectedZone == 1) "2: " + currencyFormat.format(heroItem.zone2Price) else "1: " + currencyFormat.format(heroItem.zone1Price)}\u00A0đ/lít",
+                        text = "$prevLabel: ${currencyFormat.format(previousPrice)}\u00A0$unitShort  •  $zLabel ${if (selectedZone == 1) "2: " + currencyFormat.format(heroItem.zone2Price) else "1: " + currencyFormat.format(heroItem.zone1Price)}\u00A0$unitShort",
                         color = TextSecondaryDark,
                         fontSize = 11.5.sp,
                         maxLines = 1,
@@ -246,43 +353,7 @@ fun VietnamFuelScreen(
             }
         }
 
-        // 3. Biểu đồ biến động giá xăng dầu lịch sử (cần tối thiểu 2 kỳ thật)
-        if (data.history.size >= 2) {
-            item {
-                PriceHistoryChartCard(history = data.history)
-            }
-        } else {
-            item {
-                Surface(
-                    color = DarkSurface,
-                    shape = RoundedCornerShape(14.dp),
-                    modifier = Modifier.fillMaxWidth()
-                ) {
-                    Row(
-                        modifier = Modifier.padding(14.dp),
-                        verticalAlignment = Alignment.CenterVertically
-                    ) {
-                        Text(text = "📊", fontSize = 18.sp)
-                        Spacer(modifier = Modifier.width(10.dp))
-                        Column {
-                            Text(
-                                text = "Lịch sử giá",
-                                color = TextPrimaryDark,
-                                fontSize = 14.sp,
-                                fontWeight = FontWeight.Bold
-                            )
-                            Text(
-                                text = "Biểu đồ sẽ hiện từ kỳ điều hành tiếp theo",
-                                color = TextSecondaryDark,
-                                fontSize = 11.sp
-                            )
-                        }
-                    }
-                }
-            }
-        }
-
-        // 4. Bento Grid các mặt hàng khác (E5, Diesel...)
+        // 3. Bento Grid các mặt hàng khác (E5, Diesel...)
         item {
             val otherItems = data.items.filter { !it.isFeatured }
             val chunks = otherItems.chunked(2)
@@ -303,7 +374,6 @@ fun VietnamFuelScreen(
                             }
                         }
                     } else {
-                        // Khi còn lẻ 1 món (ví dụ Dầu DO): Trải rộng thanh lịch toàn hàng ngang, không để trống bên phải
                         FuelWideCard(
                             item = chunk[0],
                             zone = selectedZone,
@@ -315,7 +385,73 @@ fun VietnamFuelScreen(
             }
         }
 
-        // 4. Thẻ Trạm xăng quanh bạn (Smart Fuel Radar - 1 Chạm dẫn đường)
+        // 4. TÍNH NĂNG VIRAL: ĐỔ ĐẦY BÌNH XE CỦA BẠN HẾT BAO NHIÊU?
+        item {
+            FullTankCalculatorCard(
+                presets = VEHICLE_PRESETS,
+                selectedIdx = selectedVehicleIdx,
+                onSelectVehicle = { idx ->
+                    selectedVehicleIdx = idx
+                    prefs.edit().putInt("selected_vehicle_idx", idx).apply()
+                },
+                fuelName = translateFuelName(vehicleFuelItem.name, lang),
+                fullTankCost = fullTankCost,
+                fullTankDelta = fullTankDelta,
+                currencyFormat = currencyFormat,
+                onShareClick = {
+                    ShareCardGenerator.shareVietnamFuelCard(
+                        context = context,
+                        data = data,
+                        zone = selectedZone,
+                        provinceLabel = displayZoneLabel,
+                        vehicleName = if (lang == AppLang.EN) currentVehicle.nameEn else currentVehicle.nameVi,
+                        tankLiters = currentVehicle.tankLiters,
+                        selectedFuelName = vehicleFuelItem.name,
+                        fullTankCost = fullTankCost,
+                        fullTankDelta = fullTankDelta,
+                        lang = lang
+                    )
+                }
+            )
+        }
+
+        // 5. Biểu đồ biến động giá xăng dầu lịch sử (cần tối thiểu 2 kỳ thật)
+        if (data.history.size >= 2) {
+            item {
+                PriceHistoryChartCard(history = data.history)
+            }
+        } else {
+            item {
+                Surface(
+                    color = DarkSurface,
+                    shape = RoundedCornerShape(14.dp),
+                    modifier = Modifier.fillMaxWidth()
+                ) {
+                    Row(
+                        modifier = Modifier.padding(14.dp),
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Text(text = "📊", fontSize = 18.sp)
+                        Spacer(modifier = Modifier.width(10.dp))
+                        Column {
+                            Text(
+                                text = tr("Lịch sử giá", "Price History"),
+                                color = TextPrimaryDark,
+                                fontSize = 14.sp,
+                                fontWeight = FontWeight.Bold
+                            )
+                            Text(
+                                text = tr("Biểu đồ sẽ hiện từ kỳ điều hành tiếp theo", "Chart will appear after next price adjustment"),
+                                color = TextSecondaryDark,
+                                fontSize = 11.sp
+                            )
+                        }
+                    }
+                }
+            }
+        }
+
+        // 6. Thẻ Trạm xăng quanh bạn (Smart Fuel Radar - 1 Chạm dẫn đường)
         item {
             NearbyFuelRadarCard(
                 context = context,
@@ -323,13 +459,7 @@ fun VietnamFuelScreen(
             )
         }
 
-        // 5. Vị trí AdMob Native Ad (Theo kế hoạch đã phê duyệt)
-        // Tạm ẩn: placeholder đang hiển thị ưu đãi giả. Bật lại khi gắn Native Ad thật.
-        // item {
-        //     AdMobNativePlaceholder()
-        // }
-
-        // 6. Thẻ Xem nhanh So sánh ASEAN (CTA sang màn hình 2) - dùng dữ liệu thật từ tab Thế Giới
+        // 7. Thẻ Xem nhanh So sánh ASEAN (CTA sang màn hình Thế Giới)
         val asean = worldData?.countries?.filter { it.region == "ASEAN" }.orEmpty()
         val vn = asean.firstOrNull { it.isCurrent }
         val cheapest = asean.filter { !it.isCurrent }.minByOrNull { it.priceVnd }
@@ -356,7 +486,7 @@ fun VietnamFuelScreen(
                             Text(text = "🌍", fontSize = 18.sp)
                             Spacer(modifier = Modifier.width(8.dp))
                             Text(
-                                text = "So sánh ASEAN",
+                                text = tr("So sánh Đông Nam Á", "ASEAN Comparison"),
                                 color = TextPrimaryDark,
                                 fontWeight = FontWeight.Bold,
                                 fontSize = 15.sp,
@@ -367,13 +497,12 @@ fun VietnamFuelScreen(
 
                         Spacer(modifier = Modifier.width(8.dp))
 
-                        // Nút "Xem tất cả →" (Chống rớt dòng dọc triệt để)
                         Surface(
                             color = PetrolTeal.copy(alpha = 0.15f),
                             shape = RoundedCornerShape(12.dp)
                         ) {
                             Text(
-                                text = "Xem tất cả →",
+                                text = tr("Xem tất cả →", "See all →"),
                                 color = PetrolTeal,
                                 fontSize = 12.sp,
                                 fontWeight = FontWeight.SemiBold,
@@ -386,13 +515,13 @@ fun VietnamFuelScreen(
 
                     Spacer(modifier = Modifier.height(10.dp))
 
-                    // Bảng 3 cột: Việt Nam | Rẻ nhất ASEAN | Đắt nhất ASEAN
                     Row(modifier = Modifier.fillMaxWidth()) {
                         listOf(
-                            Triple(vn, "Việt Nam", TextPrimaryDark),
-                            Triple(cheapest, "Rẻ nhất", PriceGreen),
-                            Triple(priciest, "Đắt nhất", PriceRed)
+                            Triple(vn, tr("Việt Nam", "Vietnam"), TextPrimaryDark),
+                            Triple(cheapest, tr("Rẻ nhất", "Cheapest"), PriceGreen),
+                            Triple(priciest, tr("Đắt nhất", "Priciest"), PriceRed)
                         ).forEachIndexed { i, (country, label, color) ->
+                            val cName = translateCountryName(country.name, country.code, lang)
                             Column(
                                 modifier = Modifier.weight(1f),
                                 horizontalAlignment = when (i) {
@@ -402,7 +531,7 @@ fun VietnamFuelScreen(
                                 }
                             ) {
                                 Text(
-                                    text = "${country.flag} ${if (i == 0) label else country.name}",
+                                    text = "${country.flag} ${if (i == 0) label else cName}",
                                     color = TextSecondaryDark,
                                     fontSize = 11.sp,
                                     maxLines = 1,
@@ -453,19 +582,214 @@ fun VietnamFuelScreen(
 }
 
 @Composable
+fun FullTankCalculatorCard(
+    presets: List<VehiclePreset>,
+    selectedIdx: Int,
+    onSelectVehicle: (Int) -> Unit,
+    fuelName: String,
+    fullTankCost: Int,
+    fullTankDelta: Int,
+    currencyFormat: NumberFormat,
+    onShareClick: () -> Unit
+) {
+    val lang = LocalAppLanguage.current
+    val selectedVehicle = presets.getOrElse(selectedIdx) { presets.first() }
+
+    Card(
+        modifier = Modifier
+            .fillMaxWidth()
+            .clip(RoundedCornerShape(18.dp)),
+        colors = CardDefaults.cardColors(containerColor = DarkSurface),
+        border = androidx.compose.foundation.BorderStroke(1.dp, EnergyAmber.copy(alpha = 0.35f))
+    ) {
+        Column(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(14.dp),
+            verticalArrangement = Arrangement.spacedBy(10.dp)
+        ) {
+            // Tiêu đề + Nút Chia sẻ ảnh
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    modifier = Modifier.weight(1f, fill = false)
+                ) {
+                    Surface(
+                        color = EnergyAmber.copy(alpha = 0.18f),
+                        shape = RoundedCornerShape(8.dp)
+                    ) {
+                        Text(
+                            text = "🛵",
+                            fontSize = 15.sp,
+                            modifier = Modifier.padding(horizontal = 6.dp, vertical = 4.dp)
+                        )
+                    }
+                    Spacer(modifier = Modifier.width(8.dp))
+                    Column {
+                        Text(
+                            text = tr("Đổ Đầy Bình Hết Bao Nhiêu?", "Full Tank Cost Calculator"),
+                            color = TextPrimaryDark,
+                            fontSize = 14.5.sp,
+                            fontWeight = FontWeight.Bold,
+                            maxLines = 1,
+                            overflow = TextOverflow.Ellipsis
+                        )
+                        Text(
+                            text = tr("Chọn xe của bạn để tính nhanh 1 chạm", "Tap your vehicle to calculate full-tank price"),
+                            color = TextSecondaryDark,
+                            fontSize = 11.sp,
+                            maxLines = 1,
+                            overflow = TextOverflow.Ellipsis
+                        )
+                    }
+                }
+            }
+
+            // Hàng chọn nhanh dòng xe (Horizontal Scroll)
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .horizontalScroll(rememberScrollState()),
+                horizontalArrangement = Arrangement.spacedBy(8.dp)
+            ) {
+                presets.forEachIndexed { idx, preset ->
+                    val isSelected = idx == selectedIdx
+                    val vName = if (lang == AppLang.EN) preset.nameEn else preset.nameVi
+                    Surface(
+                        color = if (isSelected) EnergyAmber.copy(alpha = 0.18f) else DarkBackground,
+                        shape = RoundedCornerShape(12.dp),
+                        border = androidx.compose.foundation.BorderStroke(
+                            1.dp,
+                            if (isSelected) EnergyAmber else DarkSurfaceVariant
+                        ),
+                        modifier = Modifier.clickable { onSelectVehicle(idx) }
+                    ) {
+                        Row(
+                            modifier = Modifier.padding(horizontal = 10.dp, vertical = 7.dp),
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            Text(text = preset.emoji, fontSize = 13.sp)
+                            Spacer(modifier = Modifier.width(5.dp))
+                            Text(
+                                text = "$vName (${preset.tankLiters}L)",
+                                color = if (isSelected) EnergyAmber else TextSecondaryDark,
+                                fontSize = 11.5.sp,
+                                fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Medium,
+                                maxLines = 1,
+                                softWrap = false
+                            )
+                        }
+                    }
+                }
+            }
+
+            // Kết quả tính tiền đổ đầy bình + Chênh lệch
+            Surface(
+                color = DarkBackground,
+                shape = RoundedCornerShape(14.dp),
+                border = androidx.compose.foundation.BorderStroke(1.dp, DarkSurfaceVariant.copy(alpha = 0.7f)),
+                modifier = Modifier.fillMaxWidth()
+            ) {
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(horizontal = 14.dp, vertical = 12.dp),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Column(modifier = Modifier.weight(1f)) {
+                        val vName = if (lang == AppLang.EN) selectedVehicle.nameEn else selectedVehicle.nameVi
+                        Text(
+                            text = "${selectedVehicle.emoji} $vName • ${selectedVehicle.tankLiters}L ($fuelName)",
+                            color = TextSecondaryDark,
+                            fontSize = 11.sp,
+                            maxLines = 1,
+                            overflow = TextOverflow.Ellipsis
+                        )
+                        Spacer(modifier = Modifier.height(3.dp))
+                        Text(
+                            text = "${currencyFormat.format(fullTankCost)} đ",
+                            color = TextPrimaryDark,
+                            fontSize = 24.sp,
+                            fontWeight = FontWeight.ExtraBold,
+                            maxLines = 1,
+                            softWrap = false
+                        )
+                        Spacer(modifier = Modifier.height(3.dp))
+                        val deltaColor = when {
+                            fullTankDelta < 0 -> PriceGreen
+                            fullTankDelta > 0 -> PriceRed
+                            else -> TextSecondaryDark
+                        }
+                        val deltaLabel = when {
+                            fullTankDelta < 0 -> tr(
+                                "▼ Tiết kiệm ${currencyFormat.format(abs(fullTankDelta))} đ/bình so với kỳ trước",
+                                "▼ Save ${currencyFormat.format(abs(fullTankDelta))} VND/tank vs last period"
+                            )
+                            fullTankDelta > 0 -> tr(
+                                "▲ Đắt thêm +${currencyFormat.format(fullTankDelta)} đ/bình so với kỳ trước",
+                                "▲ +${currencyFormat.format(fullTankDelta)} VND/tank vs last period"
+                            )
+                            else -> tr("Không đổi so với kỳ trước", "Unchanged vs last period")
+                        }
+                        Text(
+                            text = deltaLabel,
+                            color = deltaColor,
+                            fontSize = 11.sp,
+                            fontWeight = FontWeight.SemiBold,
+                            maxLines = 1,
+                            overflow = TextOverflow.Ellipsis
+                        )
+                    }
+
+                    Spacer(modifier = Modifier.width(8.dp))
+
+                    // Nút Gửi cho bạn bè / Zalo
+                    Surface(
+                        color = PetrolTeal,
+                        shape = RoundedCornerShape(12.dp),
+                        modifier = Modifier.clickable { onShareClick() }
+                    ) {
+                        Column(
+                            modifier = Modifier.padding(horizontal = 12.dp, vertical = 9.dp),
+                            horizontalAlignment = Alignment.CenterHorizontally
+                        ) {
+                            Text(text = "📤", fontSize = 15.sp)
+                            Text(
+                                text = tr("Gửi ảnh", "Share"),
+                                color = Color.Black,
+                                fontSize = 11.sp,
+                                fontWeight = FontWeight.Bold,
+                                maxLines = 1,
+                                softWrap = false
+                            )
+                        }
+                    }
+                }
+            }
+        }
+    }
+}
+
+@Composable
 fun FuelBentoCard(
     item: FuelItem,
     zone: Int,
     currencyFormat: NumberFormat,
     modifier: Modifier = Modifier
 ) {
+    val lang = LocalAppLanguage.current
     Card(
         modifier = modifier.clip(RoundedCornerShape(16.dp)),
         colors = CardDefaults.cardColors(containerColor = DarkSurface)
     ) {
         Column(modifier = Modifier.padding(14.dp)) {
             Text(
-                text = item.name,
+                text = translateFuelName(item.name, lang),
                 color = TextSecondaryDark,
                 fontSize = 13.sp,
                 fontWeight = FontWeight.Medium,
@@ -498,6 +822,7 @@ fun FuelWideCard(
     currencyFormat: NumberFormat,
     modifier: Modifier = Modifier
 ) {
+    val lang = LocalAppLanguage.current
     Card(
         modifier = modifier.clip(RoundedCornerShape(16.dp)),
         colors = CardDefaults.cardColors(containerColor = DarkSurface)
@@ -511,7 +836,7 @@ fun FuelWideCard(
         ) {
             Column(modifier = Modifier.weight(1f)) {
                 Text(
-                    text = item.name,
+                    text = translateFuelName(item.name, lang),
                     color = TextSecondaryDark,
                     fontSize = 13.sp,
                     fontWeight = FontWeight.Medium,
@@ -522,7 +847,7 @@ fun FuelWideCard(
             }
 
             Text(
-                text = "${currencyFormat.format(item.getPrice(zone))} đ/lít",
+                text = "${currencyFormat.format(item.getPrice(zone))} ${tr("đ/lít", "VND/L")}",
                 color = TextPrimaryDark,
                 fontSize = 18.sp,
                 fontWeight = FontWeight.Bold
@@ -558,7 +883,7 @@ fun DeltaPriceBadge(delta: Int, percent: Double? = null, isCompact: Boolean = fa
                 text = when {
                     isRaise -> "▲ +${delta}đ · +$pctText%"
                     isDrop -> "▼ ${-delta}đ · -$pctText%"
-                    else -> "Không đổi"
+                    else -> tr("Không đổi", "Unchanged")
                 },
                 color = textColor,
                 fontSize = 12.sp,
@@ -569,9 +894,9 @@ fun DeltaPriceBadge(delta: Int, percent: Double? = null, isCompact: Boolean = fa
             )
         } else {
             val text = when {
-                isDrop -> if (isCompact) "▼ ${-delta}đ" else "▼ Giảm ${-delta} đ/lít"
-                isRaise -> if (isCompact) "▲ +${delta}đ" else "▲ Tăng ${delta} đ/lít"
-                else -> "Không đổi"
+                isDrop -> if (isCompact) "▼ ${-delta}đ" else tr("▼ Giảm ${-delta} đ/lít", "▼ Down ${-delta} VND/L")
+                isRaise -> if (isCompact) "▲ +${delta}đ" else tr("▲ Tăng ${delta} đ/lít", "▲ Up +${delta} VND/L")
+                else -> tr("Không đổi", "Unchanged")
             }
             Text(
                 text = text,
@@ -713,13 +1038,13 @@ fun ZoneSelectionDialog(
                 Spacer(modifier = Modifier.width(8.dp))
                 Column {
                     Text(
-                        text = "Vùng 1 & Vùng 2 là gì?",
+                        text = tr("Vùng 1 & Vùng 2 là gì?", "What are Zone 1 & Zone 2?"),
                         color = TextPrimaryDark,
                         fontSize = 17.sp,
                         fontWeight = FontWeight.Bold
                     )
                     Text(
-                        text = "Cơ cấu 34 tỉnh thành & quy định giá Petrolimex",
+                        text = tr("Cơ cấu 34 tỉnh thành & quy định giá Petrolimex", "Vietnam regional fuel pricing by Petrolimex"),
                         color = TextSecondaryDark,
                         fontSize = 11.sp
                     )
@@ -735,7 +1060,10 @@ fun ZoneSelectionDialog(
             ) {
                 // Giải thích ngắn gọn
                 Text(
-                    text = "Bộ Công Thương & Petrolimex phân chia 34 tỉnh thành thành 2 vùng giá theo chi phí vận chuyển:",
+                    text = tr(
+                        "Bộ Công Thương & Petrolimex phân chia 34 tỉnh thành thành 2 vùng giá theo chi phí vận chuyển:",
+                        "Vietnam divides provinces into 2 pricing zones based on transport distance from main fuel depots:"
+                    ),
                     color = TextSecondaryDark,
                     fontSize = 12.sp,
                     lineHeight = 16.sp
@@ -745,7 +1073,7 @@ fun ZoneSelectionDialog(
                 Card(
                     modifier = Modifier
                         .fillMaxWidth()
-                        .clickable { onZoneSelected(1, "Vùng 1 (Giá chuẩn)") },
+                        .clickable { onZoneSelected(1, "") },
                     shape = RoundedCornerShape(12.dp),
                     colors = CardDefaults.cardColors(
                         containerColor = if (currentZone == 1) PetrolTeal.copy(alpha = 0.15f) else DarkBackground
@@ -762,18 +1090,21 @@ fun ZoneSelectionDialog(
                             verticalAlignment = Alignment.CenterVertically
                         ) {
                             Text(
-                                text = "🟢 Vùng 1: Giá chuẩn (Thấp nhất)",
+                                text = tr("🟢 Vùng 1: Giá chuẩn (Thấp nhất)", "🟢 Zone 1: Standard Price"),
                                 color = TextPrimaryDark,
                                 fontSize = 13.sp,
                                 fontWeight = FontWeight.Bold
                             )
                             if (currentZone == 1) {
-                                Text(text = "✓ Đang chọn", color = PetrolTeal, fontSize = 11.sp, fontWeight = FontWeight.Bold)
+                                Text(text = tr("✓ Đang chọn", "✓ Selected"), color = PetrolTeal, fontSize = 11.sp, fontWeight = FontWeight.Bold)
                             }
                         }
                         Spacer(modifier = Modifier.height(4.dp))
                         Text(
-                            text = "21 tỉnh & TP đồng bằng, ven biển gần cảng/tổng kho (Hà Nội, TP.HCM, Hải Phòng, Đà Nẵng, Cần Thơ, Bắc Ninh...).",
+                            text = tr(
+                                "21 tỉnh & TP đồng bằng, ven biển gần cảng/tổng kho (Hà Nội, TP.HCM, Hải Phòng, Đà Nẵng, Cần Thơ, Bắc Ninh...).",
+                                "Major cities & coastal provinces near ports (Hanoi, HCMC, Da Nang, Hai Phong, Can Tho, Nha Trang...)."
+                            ),
                             color = TextSecondaryDark,
                             fontSize = 11.sp,
                             lineHeight = 15.sp
@@ -785,7 +1116,7 @@ fun ZoneSelectionDialog(
                 Card(
                     modifier = Modifier
                         .fillMaxWidth()
-                        .clickable { onZoneSelected(2, "Vùng 2 (+2% cước)") },
+                        .clickable { onZoneSelected(2, "") },
                     shape = RoundedCornerShape(12.dp),
                     colors = CardDefaults.cardColors(
                         containerColor = if (currentZone == 2) EnergyAmber.copy(alpha = 0.15f) else DarkBackground
@@ -802,18 +1133,21 @@ fun ZoneSelectionDialog(
                             verticalAlignment = Alignment.CenterVertically
                         ) {
                             Text(
-                                text = "🟡 Vùng 2: Cao hơn tối đa 2%",
+                                text = tr("🟡 Vùng 2: Cao hơn tối đa 2%", "🟡 Zone 2: Remote (+2% max)"),
                                 color = TextPrimaryDark,
                                 fontSize = 13.sp,
                                 fontWeight = FontWeight.Bold
                             )
                             if (currentZone == 2) {
-                                Text(text = "✓ Đang chọn", color = EnergyAmber, fontSize = 11.sp, fontWeight = FontWeight.Bold)
+                                Text(text = tr("✓ Đang chọn", "✓ Selected"), color = EnergyAmber, fontSize = 11.sp, fontWeight = FontWeight.Bold)
                             }
                         }
                         Spacer(modifier = Modifier.height(4.dp))
                         Text(
-                            text = "13 tỉnh miền núi, Tây Nguyên (Lạng Sơn, Cao Bằng, Tuyên Quang, Lào Cai, Sơn La, Lâm Đồng, Đắk Lắk...) & tất cả hải đảo.",
+                            text = tr(
+                                "13 tỉnh miền núi, Tây Nguyên (Lạng Sơn, Cao Bằng, Tuyên Quang, Lào Cai, Sơn La, Lâm Đồng, Đắk Lắk...) & tất cả hải đảo.",
+                                "Highland, mountainous provinces (Ha Giang, Sa Pa, Da Lat, Buon Ma Thuot, Lang Son...) & all islands (Phu Quoc, Con Dao)."
+                            ),
                             color = TextSecondaryDark,
                             fontSize = 11.sp,
                             lineHeight = 15.sp
@@ -829,7 +1163,11 @@ fun ZoneSelectionDialog(
                     onValueChange = { searchQuery = it },
                     modifier = Modifier.fillMaxWidth(),
                     placeholder = {
-                        Text("🔍 Nhập tỉnh của bạn (vd: Lạng Sơn, Hà Giang, TP.HCM...)", color = TextSecondaryDark, fontSize = 12.sp)
+                        Text(
+                            tr("🔍 Nhập tỉnh của bạn (vd: Lạng Sơn, Hà Giang, TP.HCM...)", "🔍 Search province/city (e.g. Hanoi, Da Lat, Phu Quoc...)"),
+                            color = TextSecondaryDark,
+                            fontSize = 12.sp
+                        )
                     },
                     singleLine = true,
                     shape = RoundedCornerShape(10.dp),
@@ -857,7 +1195,7 @@ fun ZoneSelectionDialog(
                                 modifier = Modifier
                                     .fillMaxWidth()
                                     .clickable {
-                                        onZoneSelected(item.zone, "${item.name} (Vùng ${item.zone})")
+                                        onZoneSelected(item.zone, "${item.name} (Z${item.zone})")
                                     }
                             ) {
                                 Row(
@@ -872,7 +1210,7 @@ fun ZoneSelectionDialog(
                                         }
                                     }
                                     Text(
-                                        text = "➔ Vùng ${item.zone}",
+                                        text = tr("➔ Vùng ${item.zone}", "➔ Zone ${item.zone}"),
                                         color = if (item.zone == 1) PetrolTeal else EnergyAmber,
                                         fontSize = 11.sp,
                                         fontWeight = FontWeight.Bold
@@ -893,7 +1231,7 @@ fun ZoneSelectionDialog(
                                 shape = RoundedCornerShape(6.dp),
                                 border = androidx.compose.foundation.BorderStroke(1.dp, DarkSurfaceVariant),
                                 modifier = Modifier.clickable {
-                                    onZoneSelected(z, "$prov (Vùng $z)")
+                                    onZoneSelected(z, "$prov (Z$z)")
                                 }
                             ) {
                                 Text(
@@ -913,7 +1251,7 @@ fun ZoneSelectionDialog(
                 onClick = onDismiss,
                 colors = ButtonDefaults.buttonColors(containerColor = PetrolTeal)
             ) {
-                Text("Xong", color = Color.Black, fontWeight = FontWeight.Bold)
+                Text(tr("Xong", "Done"), color = Color.Black, fontWeight = FontWeight.Bold)
             }
         }
     )
@@ -982,7 +1320,7 @@ fun NearbyFuelRadarCard(
                     Spacer(modifier = Modifier.width(10.dp))
                     Column {
                         Text(
-                            text = "Trạm Xăng Quanh Bạn",
+                            text = tr("Trạm Xăng Quanh Bạn", "Nearby Gas Stations"),
                             color = TextPrimaryDark,
                             fontSize = 15.sp,
                             fontWeight = FontWeight.Bold,
@@ -990,7 +1328,7 @@ fun NearbyFuelRadarCard(
                             overflow = TextOverflow.Ellipsis
                         )
                         Text(
-                            text = "Mở Google Maps chỉ đường 1 chạm",
+                            text = tr("Mở Google Maps chỉ đường 1 chạm", "1-tap navigation via Google Maps"),
                             color = TextSecondaryDark,
                             fontSize = 11.sp,
                             maxLines = 1,
@@ -1008,8 +1346,8 @@ fun NearbyFuelRadarCard(
                 horizontalArrangement = Arrangement.spacedBy(8.dp)
             ) {
                 FuelRadarActionChip(
-                    title = "Gần nhất",
-                    subtitle = "Mọi hãng",
+                    title = tr("Gần nhất", "Nearest"),
+                    subtitle = tr("Mọi hãng", "All brands"),
                     icon = "🧭",
                     accentColor = PetrolTeal,
                     onClick = { openMapsSearch(context, "cây xăng gần đây") },
@@ -1018,7 +1356,7 @@ fun NearbyFuelRadarCard(
 
                 FuelRadarActionChip(
                     title = "Petrolimex",
-                    subtitle = "Chính hãng",
+                    subtitle = tr("Chính hãng", "Official"),
                     icon = "🟠",
                     accentColor = Color(0xFFF97316),
                     onClick = { openMapsSearch(context, "cây xăng Petrolimex gần đây") },
@@ -1027,7 +1365,7 @@ fun NearbyFuelRadarCard(
 
                 FuelRadarActionChip(
                     title = "PVOIL",
-                    subtitle = "PVcom/App",
+                    subtitle = "PVOIL Easy",
                     icon = "🔵",
                     accentColor = Color(0xFF38BDF8),
                     onClick = { openMapsSearch(context, "cây xăng PVOIL gần đây") },

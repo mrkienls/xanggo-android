@@ -12,10 +12,15 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.compose.ui.platform.LocalContext
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation3.runtime.NavKey
 import com.example.xanggo.data.DefaultFuelRepository
+import com.example.xanggo.i18n.AppLang
+import com.example.xanggo.i18n.LanguagePrefs
+import com.example.xanggo.i18n.LocalAppLanguage
+import com.example.xanggo.i18n.tr
 import com.example.xanggo.theme.*
 import com.example.xanggo.ui.components.GasPumpVector
 import com.example.xanggo.ui.components.GlobeVector
@@ -30,144 +35,153 @@ fun MainScreen(
     modifier: Modifier = Modifier,
     viewModel: MainScreenViewModel = viewModel { MainScreenViewModel(DefaultFuelRepository()) }
 ) {
+    val context = LocalContext.current
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
     val currentTab by viewModel.currentTab.collectAsStateWithLifecycle()
+    var appLang by remember { mutableStateOf(LanguagePrefs.getSavedLang(context)) }
 
-    Scaffold(
-        modifier = modifier.fillMaxSize(),
-        containerColor = DarkBackground,
-        bottomBar = {
-            Column(modifier = Modifier.background(DarkBackground)) {
-                // 1. Google AdMob Banner thích ứng (Chân trang cố định)
-                com.example.xanggo.ui.ads.AdMobBanner()
+    CompositionLocalProvider(LocalAppLanguage provides appLang) {
+        Scaffold(
+            modifier = modifier.fillMaxSize(),
+            containerColor = DarkBackground,
+            bottomBar = {
+                Column(modifier = Modifier.background(DarkBackground)) {
+                    // 1. Google AdMob Banner thích ứng (Chân trang cố định)
+                    com.example.xanggo.ui.ads.AdMobBanner()
 
-                // 2. Bottom Navigation Bar (3 Tab chuẩn: Giá Xăng | Tìm Trạm | Thế Giới)
-                NavigationBar(
-                    containerColor = DarkSurface,
-                    contentColor = TextPrimaryDark,
-                    tonalElevation = 8.dp
-                ) {
-                    NavigationBarItem(
-                        selected = currentTab == 0,
-                        onClick = { viewModel.selectTab(0) },
-                        icon = {
-                            Icon(
-                                imageVector = GasPumpVector,
-                                contentDescription = "Giá Xăng",
-                                modifier = Modifier.size(22.dp)
+                    // 2. Bottom Navigation Bar (3 Tab chuẩn: Giá Xăng | Tìm Trạm | Thế Giới)
+                    NavigationBar(
+                        containerColor = DarkSurface,
+                        contentColor = TextPrimaryDark,
+                        tonalElevation = 8.dp
+                    ) {
+                        NavigationBarItem(
+                            selected = currentTab == 0,
+                            onClick = { viewModel.selectTab(0) },
+                            icon = {
+                                Icon(
+                                    imageVector = GasPumpVector,
+                                    contentDescription = tr("Giá Xăng", "Fuel Prices"),
+                                    modifier = Modifier.size(22.dp)
+                                )
+                            },
+                            label = {
+                                Text(
+                                    text = tr("Giá Xăng", "Fuel Prices"),
+                                    fontSize = 11.sp,
+                                    fontWeight = if (currentTab == 0) FontWeight.Bold else FontWeight.Normal
+                                )
+                            },
+                            colors = NavigationBarItemDefaults.colors(
+                                selectedIconColor = PetrolTeal,
+                                selectedTextColor = PetrolTeal,
+                                indicatorColor = PetrolTeal.copy(alpha = 0.2f),
+                                unselectedIconColor = TextSecondaryDark,
+                                unselectedTextColor = TextSecondaryDark
                             )
-                        },
-                        label = {
-                            Text(
-                                text = "Giá Xăng",
-                                fontSize = 11.sp,
-                                fontWeight = if (currentTab == 0) FontWeight.Bold else FontWeight.Normal
-                            )
-                        },
-                        colors = NavigationBarItemDefaults.colors(
-                            selectedIconColor = PetrolTeal,
-                            selectedTextColor = PetrolTeal,
-                            indicatorColor = PetrolTeal.copy(alpha = 0.2f),
-                            unselectedIconColor = TextSecondaryDark,
-                            unselectedTextColor = TextSecondaryDark
                         )
-                    )
 
-                    NavigationBarItem(
-                        selected = currentTab == 1,
-                        onClick = { viewModel.selectTab(1) },
-                        icon = {
-                            Icon(
-                                imageVector = LocationPinVector,
-                                contentDescription = "Tìm Trạm Xăng",
-                                modifier = Modifier.size(24.dp)
+                        NavigationBarItem(
+                            selected = currentTab == 1,
+                            onClick = { viewModel.selectTab(1) },
+                            icon = {
+                                Icon(
+                                    imageVector = LocationPinVector,
+                                    contentDescription = tr("Trạm Xăng", "Stations"),
+                                    modifier = Modifier.size(24.dp)
+                                )
+                            },
+                            label = {
+                                Text(
+                                    text = tr("Trạm Xăng", "Stations"),
+                                    fontSize = 11.sp,
+                                    fontWeight = if (currentTab == 1) FontWeight.Bold else FontWeight.Normal,
+                                    maxLines = 1,
+                                    softWrap = false
+                                )
+                            },
+                            colors = NavigationBarItemDefaults.colors(
+                                selectedIconColor = PetrolTeal,
+                                selectedTextColor = PetrolTeal,
+                                indicatorColor = PetrolTeal.copy(alpha = 0.2f),
+                                unselectedIconColor = TextSecondaryDark,
+                                unselectedTextColor = TextSecondaryDark
                             )
-                        },
-                        label = {
-                            Text(
-                                text = "Trạm Xăng",
-                                fontSize = 11.sp,
-                                fontWeight = if (currentTab == 1) FontWeight.Bold else FontWeight.Normal,
-                                maxLines = 1,
-                                softWrap = false
-                            )
-                        },
-                        colors = NavigationBarItemDefaults.colors(
-                            selectedIconColor = PetrolTeal,
-                            selectedTextColor = PetrolTeal,
-                            indicatorColor = PetrolTeal.copy(alpha = 0.2f),
-                            unselectedIconColor = TextSecondaryDark,
-                            unselectedTextColor = TextSecondaryDark
                         )
-                    )
 
-                    NavigationBarItem(
-                        selected = currentTab == 2,
-                        onClick = { viewModel.selectTab(2) },
-                        icon = {
-                            Icon(
-                                imageVector = GlobeVector,
-                                contentDescription = "Thế Giới",
-                                modifier = Modifier.size(22.dp)
+                        NavigationBarItem(
+                            selected = currentTab == 2,
+                            onClick = { viewModel.selectTab(2) },
+                            icon = {
+                                Icon(
+                                    imageVector = GlobeVector,
+                                    contentDescription = tr("Thế Giới", "World"),
+                                    modifier = Modifier.size(22.dp)
+                                )
+                            },
+                            label = {
+                                Text(
+                                    text = tr("Thế Giới", "World"),
+                                    fontSize = 11.sp,
+                                    fontWeight = if (currentTab == 2) FontWeight.Bold else FontWeight.Normal
+                                )
+                            },
+                            colors = NavigationBarItemDefaults.colors(
+                                selectedIconColor = PetrolTeal,
+                                selectedTextColor = PetrolTeal,
+                                indicatorColor = PetrolTeal.copy(alpha = 0.2f),
+                                unselectedIconColor = TextSecondaryDark,
+                                unselectedTextColor = TextSecondaryDark
                             )
-                        },
-                        label = {
-                            Text(
-                                text = "Thế Giới",
-                                fontSize = 11.sp,
-                                fontWeight = if (currentTab == 2) FontWeight.Bold else FontWeight.Normal
-                            )
-                        },
-                        colors = NavigationBarItemDefaults.colors(
-                            selectedIconColor = PetrolTeal,
-                            selectedTextColor = PetrolTeal,
-                            indicatorColor = PetrolTeal.copy(alpha = 0.2f),
-                            unselectedIconColor = TextSecondaryDark,
-                            unselectedTextColor = TextSecondaryDark
                         )
-                    )
+                    }
                 }
             }
-        }
-    ) { innerPadding ->
-        Box(
-            modifier = Modifier
-                .fillMaxSize()
-                .padding(innerPadding)
-        ) {
-            when (val state = uiState) {
-                is MainUiState.Loading -> {
-                    Box(
-                        modifier = Modifier.fillMaxSize(),
-                        contentAlignment = Alignment.Center
-                    ) {
-                        CircularProgressIndicator(color = PetrolTeal)
+        ) { innerPadding ->
+            Box(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .padding(innerPadding)
+            ) {
+                when (val state = uiState) {
+                    is MainUiState.Loading -> {
+                        Box(
+                            modifier = Modifier.fillMaxSize(),
+                            contentAlignment = Alignment.Center
+                        ) {
+                            CircularProgressIndicator(color = PetrolTeal)
+                        }
                     }
-                }
-                is MainUiState.Success -> {
-                    when (currentTab) {
-                        0 -> VietnamFuelScreen(
-                            data = state.vietnamData,
-                            worldData = state.worldData,
-                            onNavigateToStations = { viewModel.selectTab(1) },
-                            onNavigateToWorld = { viewModel.selectTab(2) }
-                        )
-                        1 -> GasStationScreen()
-                        else -> WorldCompareScreen(
-                            data = state.worldData
-                        )
+                    is MainUiState.Success -> {
+                        when (currentTab) {
+                            0 -> VietnamFuelScreen(
+                                data = state.vietnamData,
+                                worldData = state.worldData,
+                                onNavigateToStations = { viewModel.selectTab(1) },
+                                onNavigateToWorld = { viewModel.selectTab(2) },
+                                onToggleLanguage = {
+                                    val next = if (appLang == AppLang.VI) AppLang.EN else AppLang.VI
+                                    appLang = next
+                                    LanguagePrefs.saveLang(context, next)
+                                }
+                            )
+                            1 -> GasStationScreen()
+                            else -> WorldCompareScreen(
+                                data = state.worldData
+                            )
+                        }
                     }
-                }
-                is MainUiState.Error -> {
-                    Box(
-                        modifier = Modifier.fillMaxSize(),
-                        contentAlignment = Alignment.Center
-                    ) {
-                        Text(
-                            text = "Lỗi tải dữ liệu: ${state.message}",
-                            color = PriceRed,
-                            fontSize = 14.sp
-                        )
+                    is MainUiState.Error -> {
+                        Box(
+                            modifier = Modifier.fillMaxSize(),
+                            contentAlignment = Alignment.Center
+                        ) {
+                            Text(
+                                text = tr("Lỗi tải dữ liệu: ${state.message}", "Error loading data: ${state.message}"),
+                                color = PriceRed,
+                                fontSize = 14.sp
+                            )
+                        }
                     }
                 }
             }

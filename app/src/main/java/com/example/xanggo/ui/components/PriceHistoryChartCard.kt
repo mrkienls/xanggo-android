@@ -21,6 +21,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.example.xanggo.data.model.PriceHistoryPoint
+import com.example.xanggo.i18n.tr
 import com.example.xanggo.theme.*
 import java.text.NumberFormat
 import java.util.Locale
@@ -94,7 +95,7 @@ fun PriceHistoryChartCard(
                     Spacer(modifier = Modifier.width(8.dp))
                     Column {
                         Text(
-                            text = "Lịch Sử Giá",
+                            text = tr("Lịch Sử Giá", "Price History"),
                             color = TextPrimaryDark,
                             fontSize = 15.sp,
                             fontWeight = FontWeight.Bold,
@@ -102,7 +103,7 @@ fun PriceHistoryChartCard(
                             overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis
                         )
                         Text(
-                            text = "${history.size} kỳ gần nhất",
+                            text = tr("${history.size} kỳ gần nhất", "Last ${history.size} periods"),
                             color = TextSecondaryDark,
                             fontSize = 11.sp,
                             maxLines = 1,
@@ -114,6 +115,7 @@ fun PriceHistoryChartCard(
                 Spacer(modifier = Modifier.width(8.dp))
 
                 // Nhãn biến động của điểm đang chọn (Chống rớt dòng dọc tuyệt đối)
+                val unitLabel = tr("đ/lít", "VND/L")
                 Surface(
                     color = if (pointDelta > 0) PriceRed.copy(alpha = 0.15f)
                             else if (pointDelta < 0) PriceGreen.copy(alpha = 0.15f)
@@ -121,9 +123,9 @@ fun PriceHistoryChartCard(
                     shape = RoundedCornerShape(8.dp)
                 ) {
                     Text(
-                        text = if (pointDelta > 0) "+${currencyFormat.format(pointDelta)} đ/lít"
-                               else if (pointDelta < 0) "-${currencyFormat.format(abs(pointDelta))} đ/lít"
-                               else "Không đổi",
+                        text = if (pointDelta > 0) "+${currencyFormat.format(pointDelta)} $unitLabel"
+                               else if (pointDelta < 0) "-${currencyFormat.format(abs(pointDelta))} $unitLabel"
+                               else tr("Không đổi", "Unchanged"),
                         color = if (pointDelta > 0) PriceRed
                                 else if (pointDelta < 0) PriceGreen
                                 else TextSecondaryDark,
@@ -160,7 +162,7 @@ fun PriceHistoryChartCard(
                     modifier = Modifier.weight(1f)
                 )
                 FuelFilterChip(
-                    label = "Dầu DO",
+                    label = tr("Dầu DO", "Diesel DO"),
                     isSelected = selectedFuelType == 2,
                     onClick = {
                         selectedFuelType = 2
@@ -189,7 +191,7 @@ fun PriceHistoryChartCard(
                         Spacer(modifier = Modifier.width(8.dp))
                         Column {
                             Text(
-                                text = "Kỳ điều hành",
+                                text = tr("Kỳ điều hành", "Adjustment Date"),
                                 color = TextSecondaryDark,
                                 fontSize = 10.sp
                             )
@@ -215,12 +217,12 @@ fun PriceHistoryChartCard(
                         Spacer(modifier = Modifier.width(8.dp))
                         Column(horizontalAlignment = Alignment.End) {
                             Text(
-                                text = "Giá niêm yết",
+                                text = tr("Giá niêm yết", "Retail Price"),
                                 color = TextSecondaryDark,
                                 fontSize = 10.sp
                             )
                             Text(
-                                text = "${currencyFormat.format(activePrice)} đ/lít",
+                                text = "${currencyFormat.format(activePrice)} ${tr("đ/lít", "VND/L")}",
                                 color = PetrolTeal,
                                 fontSize = 14.sp,
                                 fontWeight = FontWeight.Bold
@@ -261,7 +263,7 @@ fun PriceHistoryChartCard(
                         Text(text = "💡", fontSize = 13.sp)
                         Spacer(modifier = Modifier.width(8.dp))
                         Text(
-                            text = "Chạm hoặc vuốt ngang để xem từng kỳ",
+                            text = tr("Chạm hoặc vuốt ngang để xem từng kỳ", "Tap or drag horizontally to inspect each period"),
                             color = TextSecondaryDark,
                             fontSize = 11.sp,
                             maxLines = 1,

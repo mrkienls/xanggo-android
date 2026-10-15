@@ -21,10 +21,16 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.compose.ui.platform.LocalContext
 import com.example.xanggo.data.model.CountryFuel
 import com.example.xanggo.data.model.WorldFuelSummary
+import com.example.xanggo.i18n.AppLang
+import com.example.xanggo.i18n.LocalAppLanguage
+import com.example.xanggo.i18n.tr
+import com.example.xanggo.i18n.translateCountryName
 import com.example.xanggo.theme.*
 import com.example.xanggo.ui.components.GlobeVector
+import com.example.xanggo.util.ShareCardGenerator
 import java.text.Normalizer
 import java.text.NumberFormat
 import java.util.Locale
@@ -34,6 +40,8 @@ import java.util.regex.Pattern
 fun WorldCompareScreen(
     data: WorldFuelSummary
 ) {
+    val context = LocalContext.current
+    val lang = LocalAppLanguage.current
     var selectedCurrency by remember { mutableStateOf("VND") } // "VND" hoặc "USD"
     var selectedTab by remember { mutableIntStateOf(0) } // 0: ASEAN, 1: Top Rẻ, 2: Toàn Cầu
     var searchQuery by remember { mutableStateOf("") } // Từ khóa tìm kiếm quốc gia
@@ -57,32 +65,27 @@ fun WorldCompareScreen(
         else -> allCountries
     }
 
-    // Lọc danh sách quốc gia theo từ khóa tìm kiếm (hỗ trợ tiếng Việt không dấu & có dấu)
+    // Lọc danh sách quốc gia theo từ khóa tìm kiếm (hỗ trợ tiếng Việt & tiếng Anh)
     val filteredCountries = remember(searchQuery, currentTabList, allCountries, selectedTab) {
         val query = removeVietnameseAccents(searchQuery)
         if (query.isEmpty()) {
             currentTabList
         } else {
-            val tabMatches = currentTabList.filter {
+            val matchesFn: (CountryFuel) -> Boolean = {
                 removeVietnameseAccents(it.name).contains(query) ||
+                removeVietnameseAccents(translateCountryName(it.name, it.code, AppLang.EN)).contains(query) ||
                 it.code.lowercase().contains(query) ||
                 removeVietnameseAccents(it.note).contains(query)
             }
-            // Nếu tìm kiếm từ khóa không có trong tab hiện tại (ví dụ đang ở Đông Nam Á mà gõ "Mỹ", "Đức"),
-            // tự động tìm trên toàn bộ 170 quốc gia để người dùng luôn tìm thấy kết quả!
+            val tabMatches = currentTabList.filter(matchesFn)
             if (tabMatches.isEmpty() && selectedTab != 2) {
-                allCountries.filter {
-                    removeVietnameseAccents(it.name).contains(query) ||
-                    it.code.lowercase().contains(query) ||
-                    removeVietnameseAccents(it.note).contains(query)
-                }
+                allCountries.filter(matchesFn)
             } else {
                 tabMatches
             }
         }
     }
 
-    // Tự động cuộn lên đầu danh sách khi người dùng đổi Tab hoặc tìm kiếm
     LaunchedEffect(selectedTab) {
         listState.scrollToItem(0)
     }
@@ -106,20 +109,12 @@ fun WorldCompareScreen(
         }
     }
 
-    // Format ngày giờ sạch đẹp từ chuỗi ISO
-    val displayDate = remember(data.updatedAt) {
-        formatDisplayDate(data.updatedAt)
-    }
-
     Column(
         modifier = Modifier
             .fillMaxSize()
             .background(DarkBackground)
     ) {
-        // -----------------------------------------------------------
         // 1. THANH ĐIỀU HƯỚNG & TÌM KIẾM CỐ ĐỊNH TRÊN CÙNG (Sticky Nav)
-        // Khi người dùng cuộn danh sách, phần này vẫn luôn hiển thị rõ ràng!
-        // -----------------------------------------------------------
         Surface(
             color = DarkBackground,
             modifier = Modifier.fillMaxWidth()
@@ -130,7 +125,7 @@ fun WorldCompareScreen(
                     .padding(start = 16.dp, end = 16.dp, top = 8.dp, bottom = 10.dp),
                 verticalArrangement = Arrangement.spacedBy(10.dp)
             ) {
-                // Hàng 1: Tiêu đề + Nút hướng dẫn + Đơn vị tiền tệ [ VND | USD ]
+                // Hàng 1: Tiêu đề + Nút (?) + Nút Chia sẻ Infographic + [ VND | USD ]
                 Row(
                     modifier = Modifier.fillMaxWidth(),
                     horizontalArrangement = Arrangement.SpaceBetween,
@@ -159,9 +154,9 @@ fun WorldCompareScreen(
 
                         Text(
                             text = androidx.compose.ui.text.buildAnnotatedString {
-                                append("Xăng ")
+                                append(tr("Xăng ", "World "))
                                 pushStyle(androidx.compose.ui.text.SpanStyle(color = PetrolTeal))
-                                append("Thế Giới")
+                                append(tr("Thế Giới", "Fuel"))
                                 pop()
                             },
                             color = TextPrimaryDark,
@@ -172,7 +167,7 @@ fun WorldCompareScreen(
                             modifier = Modifier.weight(1f, fill = false)
                         )
 
-                        Spacer(modifier = Modifier.width(3.dp))
+                        Spacer(modifier = Modifier.width(4.dp))
 
                         // Nút (?) giải thích sức mua
                         IconButton(
@@ -190,25 +185,52 @@ fun WorldCompareScreen(
                         }
                     }
 
-                    Spacer(modifier = Modifier.width(6.dp))
-
-                    // Chuyển đổi tiền tệ [ VND ] | [ USD ]
-                    Surface(
-                        color = DarkSurface,
-                        shape = RoundedCornerShape(20.dp),
-                        border = androidx.compose.foundation.BorderStroke(1.dp, PetrolTeal.copy(alpha = 0.3f))
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(6.dp)
                     ) {
-                        Row(modifier = Modifier.padding(2.5.dp)) {
-                            CurrencyToggleChip(
-                                label = "VND",
-                                isSelected = selectedCurrency == "VND",
-                                onClick = { selectedCurrency = "VND" }
+                        // Nút Chia sẻ Infographic ASEAN 1 chạm
+                        Surface(
+                            color = PetrolTeal.copy(alpha = 0.16f),
+                            shape = RoundedCornerShape(16.dp),
+                            border = androidx.compose.foundation.BorderStroke(1.dp, PetrolTeal.copy(alpha = 0.45f)),
+                            modifier = Modifier.clickable {
+                                ShareCardGenerator.shareWorldCompareCard(
+                                    context = context,
+                                    data = data,
+                                    lang = lang
+                                )
+                            }
+                        ) {
+                            Text(
+                                text = tr("📤 Chia sẻ", "📤 Share"),
+                                color = PetrolTeal,
+                                fontSize = 11.5.sp,
+                                fontWeight = FontWeight.Bold,
+                                maxLines = 1,
+                                softWrap = false,
+                                modifier = Modifier.padding(horizontal = 9.dp, vertical = 5.dp)
                             )
-                            CurrencyToggleChip(
-                                label = "USD",
-                                isSelected = selectedCurrency == "USD",
-                                onClick = { selectedCurrency = "USD" }
-                            )
+                        }
+
+                        // Chuyển đổi tiền tệ [ VND ] | [ USD ]
+                        Surface(
+                            color = DarkSurface,
+                            shape = RoundedCornerShape(20.dp),
+                            border = androidx.compose.foundation.BorderStroke(1.dp, PetrolTeal.copy(alpha = 0.3f))
+                        ) {
+                            Row(modifier = Modifier.padding(2.5.dp)) {
+                                CurrencyToggleChip(
+                                    label = "VND",
+                                    isSelected = selectedCurrency == "VND",
+                                    onClick = { selectedCurrency = "VND" }
+                                )
+                                CurrencyToggleChip(
+                                    label = "USD",
+                                    isSelected = selectedCurrency == "USD",
+                                    onClick = { selectedCurrency = "USD" }
+                                )
+                            }
                         }
                     }
                 }
@@ -220,7 +242,7 @@ fun WorldCompareScreen(
                     modifier = Modifier.fillMaxWidth(),
                     placeholder = {
                         Text(
-                            text = "🔍 Tìm nước: Mỹ, Nhật, Lào…",
+                            text = tr("🔍 Tìm nước: Mỹ, Nhật, Lào…", "🔍 Search country: USA, Japan, Laos…"),
                             color = TextSecondaryDark,
                             fontSize = 13.sp,
                             maxLines = 1,
@@ -247,7 +269,7 @@ fun WorldCompareScreen(
                     )
                 )
 
-                // Hàng 3: Tab chuyển danh mục [ ASEAN | Rẻ nhất | Tất cả ] CỐ ĐỊNH
+                // Hàng 3: Tab chuyển danh mục [ ASEAN | Rẻ nhất | Tất cả ]
                 PrimaryTabRow(
                     selectedTabIndex = selectedTab,
                     containerColor = DarkSurface,
@@ -256,8 +278,8 @@ fun WorldCompareScreen(
                 ) {
                     listOf(
                         "ASEAN (${aseanCountries.size})",
-                        "Rẻ nhất",
-                        "Tất cả (${allCountries.size})"
+                        tr("Rẻ nhất", "Cheapest"),
+                        tr("Tất cả (${allCountries.size})", "All (${allCountries.size})")
                     ).forEachIndexed { i, label ->
                         Tab(
                             selected = selectedTab == i,
@@ -279,9 +301,7 @@ fun WorldCompareScreen(
 
         HorizontalDivider(color = DarkSurfaceVariant.copy(alpha = 0.4f), thickness = 1.dp)
 
-        // -----------------------------------------------------------
         // 2. DANH SÁCH CUỘN DƯỚI THANH NAV CỐ ĐỊNH
-        // -----------------------------------------------------------
         LazyColumn(
             state = listState,
             modifier = Modifier
@@ -293,7 +313,7 @@ fun WorldCompareScreen(
                 Spacer(modifier = Modifier.height(2.dp))
             }
 
-            // 4. Highlight Thẻ Việt Nam (Chỉ hiện khi chưa tìm kiếm hoặc kết quả tìm kiếm có Việt Nam)
+            // Highlight Thẻ Việt Nam
             if (searchQuery.isBlank() || filteredCountries.any { it.isCurrent }) {
                 item {
                     Card(
@@ -310,13 +330,19 @@ fun WorldCompareScreen(
                             Spacer(modifier = Modifier.width(12.dp))
                             Column(modifier = Modifier.weight(1f)) {
                                 Text(
-                                    text = "Việt Nam: Hạng ${data.vnRank} / ${data.totalCountries} quốc gia",
+                                    text = tr(
+                                        "Việt Nam: Hạng ${data.vnRank} / ${data.totalCountries} quốc gia",
+                                        "Vietnam: Rank ${data.vnRank} / ${data.totalCountries} countries"
+                                    ),
                                     color = TextPrimaryDark,
                                     fontSize = 15.sp,
                                     fontWeight = FontWeight.Bold
                                 )
                                 Text(
-                                    text = "Giá xăng thuộc nhóm trung bình khu vực ASEAN",
+                                    text = tr(
+                                        "Giá xăng thuộc nhóm trung bình khu vực ASEAN",
+                                        "Mid-range fuel price in the ASEAN region"
+                                    ),
                                     color = TextSecondaryDark,
                                     fontSize = 12.sp
                                 )
@@ -326,7 +352,7 @@ fun WorldCompareScreen(
                 }
             }
 
-            // 5. Thanh giải thích mini có thể bấm (Ẩn khi đang tìm kiếm)
+            // Thanh giải thích mini có thể bấm
             if (searchQuery.isBlank()) {
                 item {
                     Surface(
@@ -349,7 +375,7 @@ fun WorldCompareScreen(
                                 Text(text = "⏱️", fontSize = 14.sp)
                                 Spacer(modifier = Modifier.width(6.dp))
                                 Text(
-                                    text = "Phút lao động / 1 lít",
+                                    text = tr("Phút lao động / 1 lít", "Work minutes / 1 Liter"),
                                     color = PetrolTeal,
                                     fontSize = 12.sp,
                                     fontWeight = FontWeight.SemiBold,
@@ -363,7 +389,7 @@ fun WorldCompareScreen(
                                 shape = RoundedCornerShape(6.dp)
                             ) {
                                 Text(
-                                    text = "Tìm hiểu ▾",
+                                    text = tr("Tìm hiểu ▾", "How it works ▾"),
                                     color = PetrolTeal,
                                     fontSize = 11.sp,
                                     fontWeight = FontWeight.Medium,
@@ -377,11 +403,13 @@ fun WorldCompareScreen(
                 }
             }
 
-            // Khi đang tìm kiếm: hiển thị số lượng kết quả
             if (searchQuery.isNotBlank() && filteredCountries.isNotEmpty()) {
                 item {
                     Text(
-                        text = "Kết quả tìm kiếm: ${filteredCountries.size} quốc gia",
+                        text = tr(
+                            "Kết quả tìm kiếm: ${filteredCountries.size} quốc gia",
+                            "Search results: ${filteredCountries.size} countries"
+                        ),
                         color = PetrolTeal,
                         fontSize = 12.sp,
                         fontWeight = FontWeight.SemiBold,
@@ -390,7 +418,6 @@ fun WorldCompareScreen(
                 }
             }
 
-            // 6. Trường hợp không tìm thấy quốc gia nào
             if (filteredCountries.isEmpty()) {
                 item {
                     Card(
@@ -410,14 +437,17 @@ fun WorldCompareScreen(
                             Text(text = "🔍", fontSize = 36.sp)
                             Spacer(modifier = Modifier.height(10.dp))
                             Text(
-                                text = "Không tìm thấy \"$searchQuery\"",
+                                text = tr("Không tìm thấy \"$searchQuery\"", "No country found for \"$searchQuery\""),
                                 color = TextPrimaryDark,
                                 fontSize = 16.sp,
                                 fontWeight = FontWeight.Bold
                             )
                             Spacer(modifier = Modifier.height(6.dp))
                             Text(
-                                text = "Hãy thử tìm bằng tiếng Việt không dấu (my, nhat, duc...) hoặc mã nước",
+                                text = tr(
+                                    "Hãy thử tìm bằng tiếng Việt không dấu (my, nhat, duc...) hoặc mã nước",
+                                    "Try searching by country name or ISO code (US, JP, SG, TH...)"
+                                ),
                                 color = TextSecondaryDark,
                                 fontSize = 12.sp,
                                 textAlign = androidx.compose.ui.text.style.TextAlign.Center
@@ -427,14 +457,14 @@ fun WorldCompareScreen(
                                 onClick = { searchQuery = "" },
                                 colors = ButtonDefaults.buttonColors(containerColor = PetrolTeal)
                             ) {
-                                Text("Xem lại danh sách", color = androidx.compose.ui.graphics.Color.Black, fontWeight = FontWeight.Bold)
+                                Text(tr("Xem lại danh sách", "Reset search"), color = Color.Black, fontWeight = FontWeight.Bold)
                             }
                         }
                     }
                 }
             }
 
-            // Table Column Header (Chỉ hiển thị khi có dữ liệu)
+            // Table Column Header
             if (filteredCountries.isNotEmpty()) {
                 item {
                     Row(
@@ -451,21 +481,21 @@ fun WorldCompareScreen(
                             modifier = Modifier.width(24.dp)
                         )
                         Text(
-                            text = "Quốc gia",
+                            text = tr("Quốc gia", "Country"),
                             color = TextSecondaryDark,
                             fontSize = 11.sp,
                             fontWeight = FontWeight.SemiBold,
                             modifier = Modifier.weight(1f)
                         )
                         Text(
-                            text = if (selectedCurrency == "VND") "Giá xăng (đ/L)" else "Giá xăng ($/L)",
+                            text = if (selectedCurrency == "VND") tr("Giá xăng (đ/L)", "Price (VND/L)") else tr("Giá xăng ($/L)", "Price ($/L)"),
                             color = TextSecondaryDark,
                             fontSize = 11.sp,
                             fontWeight = FontWeight.SemiBold,
                             modifier = Modifier.padding(end = 12.dp)
                         )
                         Text(
-                            text = "So với VN",
+                            text = tr("So với VN", "vs VN"),
                             color = TextSecondaryDark,
                             fontSize = 11.sp,
                             fontWeight = FontWeight.SemiBold
@@ -474,7 +504,7 @@ fun WorldCompareScreen(
                 }
             }
 
-            // 7. Danh sách các quốc gia
+            // Danh sách các quốc gia
             itemsIndexed(filteredCountries) { index, country ->
                 CountryFuelRow(
                     index = index + 1,
@@ -488,7 +518,7 @@ fun WorldCompareScreen(
                 )
             }
 
-            // 8. Bảng chú thích biểu đồ & ký hiệu (Legend Bar)
+            // Legend Bar
             if (filteredCountries.isNotEmpty()) {
                 item {
                     Surface(
@@ -515,7 +545,7 @@ fun WorldCompareScreen(
                                 )
                                 Spacer(modifier = Modifier.width(5.dp))
                                 Text(
-                                    text = "Rẻ hơn VN",
+                                    text = tr("Rẻ hơn VN", "Cheaper than VN"),
                                     color = TextSecondaryDark,
                                     fontSize = 11.sp
                                 )
@@ -529,7 +559,7 @@ fun WorldCompareScreen(
                                 )
                                 Spacer(modifier = Modifier.width(5.dp))
                                 Text(
-                                    text = "Cao hơn VN",
+                                    text = tr("Cao hơn VN", "Higher than VN"),
                                     color = TextSecondaryDark,
                                     fontSize = 11.sp
                                 )
@@ -538,7 +568,7 @@ fun WorldCompareScreen(
                                 Text(text = "⏱️", fontSize = 11.sp)
                                 Spacer(modifier = Modifier.width(4.dp))
                                 Text(
-                                    text = "Số phút làm/L",
+                                    text = tr("Số phút làm/L", "Work mins/L"),
                                     color = TextSecondaryDark,
                                     fontSize = 11.sp
                                 )
@@ -549,12 +579,12 @@ fun WorldCompareScreen(
             }
 
             item {
-                Spacer(modifier = Modifier.height(80.dp)) // Tránh che banner đáy
+                Spacer(modifier = Modifier.height(80.dp))
             }
         }
     }
 
-    // HỘP THOẠI GIẢI THÍCH CÔNG THỨC & SỨC MUA MINH BẠCH
+    // HỘP THOẠI GIẢI THÍCH CÔNG THỨC & SỨC MUA
     if (showInfoDialog) {
         val scrollState = rememberScrollState()
         AlertDialog(
@@ -566,13 +596,13 @@ fun WorldCompareScreen(
                     Spacer(modifier = Modifier.width(8.dp))
                     Column {
                         Text(
-                            text = "Công thức tính số phút mua xăng",
+                            text = tr("Công thức tính số phút mua xăng", "Fuel Affordability Formula"),
                             color = TextPrimaryDark,
                             fontSize = 17.sp,
                             fontWeight = FontWeight.Bold
                         )
                         Text(
-                            text = "Phương pháp chuẩn quốc tế đo lường sức mua",
+                            text = tr("Phương pháp chuẩn quốc tế đo lường sức mua", "International purchasing power metric"),
                             color = TextSecondaryDark,
                             fontSize = 11.sp
                         )
@@ -588,13 +618,15 @@ fun WorldCompareScreen(
                     verticalArrangement = Arrangement.spacedBy(10.dp)
                 ) {
                     Text(
-                        text = "Chỉ nhìn giá tiền (đ/L) chưa đủ, vì 50.000đ ở nước phát triển rất nhẹ, nhưng ở nước nghèo lại là gánh nặng lớn. Vì vậy, chỉ số \"Số phút làm việc để mua 1L xăng\" phản ánh chính xác nhất mức độ rẻ/đắt đối với người dân bản địa.",
+                        text = tr(
+                            "Chỉ nhìn giá tiền (đ/L) chưa đủ, vì 50.000đ ở nước phát triển rất nhẹ, nhưng ở nước đang phát triển lại đáng kể. Vì vậy, chỉ số \"Số phút làm việc để mua 1L xăng\" phản ánh chính xác nhất mức độ rẻ/đắt đối với người dân bản địa.",
+                            "Raw price per liter doesn't tell the full story because wages vary widely across countries. \"Work minutes needed to buy 1L of fuel\" measures real affordability for local residents."
+                        ),
                         color = TextPrimaryDark,
                         fontSize = 12.sp,
                         lineHeight = 17.sp
                     )
 
-                    // KHỐI CÔNG THỨC CHUẨN TOÁN HỌC
                     Surface(
                         color = DarkBackground,
                         shape = RoundedCornerShape(10.dp),
@@ -603,23 +635,27 @@ fun WorldCompareScreen(
                     ) {
                         Column(modifier = Modifier.padding(12.dp)) {
                             Text(
-                                text = "⚡ CÔNG THỨC TOÁN HỌC:",
+                                text = tr("⚡ CÔNG THỨC TOÁN HỌC:", "⚡ FORMULA:"),
                                 color = PetrolTeal,
                                 fontSize = 11.sp,
                                 fontWeight = FontWeight.Bold
                             )
                             Spacer(modifier = Modifier.height(6.dp))
                             Text(
-                                text = "Số phút làm việc = ( Giá 1L xăng ÷ Thu nhập 1 ngày ) × 480 phút",
+                                text = tr(
+                                    "Số phút làm việc = ( Giá 1L xăng ÷ Thu nhập 1 ngày ) × 480 phút",
+                                    "Work Minutes = ( Price of 1L Fuel ÷ Average Daily Income ) × 480 mins"
+                                ),
                                 color = TextPrimaryDark,
                                 fontSize = 12.sp,
                                 fontWeight = FontWeight.SemiBold
                             )
                             Spacer(modifier = Modifier.height(4.dp))
                             Text(
-                                text = "• Quy chuẩn quốc tế: 1 ngày làm việc chuẩn = 8 tiếng = 480 phút.\n" +
-                                       "• Hoặc: Thu nhập 1 phút = Thu nhập ngày ÷ 480.\n" +
-                                       "  ➔ Số phút = Giá 1L xăng ÷ Thu nhập 1 phút.",
+                                text = tr(
+                                    "• Quy chuẩn quốc tế: 1 ngày làm việc chuẩn = 8 tiếng = 480 phút.\n• Hoặc: Thu nhập 1 phút = Thu nhập ngày ÷ 480.\n  ➔ Số phút = Giá 1L xăng ÷ Thu nhập 1 phút.",
+                                    "• Standard workday = 8 hours = 480 minutes.\n• Minute wage = Daily income ÷ 480.\n  ➔ Work minutes = 1L fuel price ÷ Minute wage."
+                                ),
                                 color = TextSecondaryDark,
                                 fontSize = 11.sp,
                                 lineHeight = 15.sp
@@ -627,7 +663,6 @@ fun WorldCompareScreen(
                         }
                     }
 
-                    // VÍ DỤ TỪNG BƯỚC TẠI VIỆT NAM
                     Surface(
                         color = EnergyAmber.copy(alpha = 0.08f),
                         shape = RoundedCornerShape(10.dp),
@@ -636,17 +671,17 @@ fun WorldCompareScreen(
                     ) {
                         Column(modifier = Modifier.padding(12.dp)) {
                             Text(
-                                text = "🇻🇳 VÍ DỤ TÍNH THỰC TẾ (VIỆT NAM):",
+                                text = tr("🇻🇳 VÍ DỤ TÍNH THỰC TẾ (VIỆT NAM):", "🇻🇳 REAL EXAMPLE (VIETNAM):"),
                                 color = EnergyAmber,
                                 fontSize = 11.sp,
                                 fontWeight = FontWeight.Bold
                             )
                             Spacer(modifier = Modifier.height(6.dp))
                             Text(
-                                text = "1. Thu nhập bình quân: ~325.000 đ/ngày (~13 USD, lương ~7.8 triệu/tháng).\n" +
-                                       "2. Thu nhập mỗi phút: 325.000 đ ÷ 480 phút = ~677 đ/phút.\n" +
-                                       "3. Giá 1L xăng RON 95: ~28.000 đ/Lít.\n" +
-                                       "➔ Thời gian làm việc: 28.000 đ ÷ 677 đ = ~41 phút làm việc/Lít.",
+                                text = tr(
+                                    "1. Thu nhập bình quân: ~325.000 đ/ngày (~13 USD).\n2. Thu nhập mỗi phút: 325.000 đ ÷ 480 phút = ~677 đ/phút.\n3. Giá 1L xăng RON 95: ~28.000 đ/Lít.\n➔ Thời gian làm việc: 28.000 đ ÷ 677 đ = ~41 phút làm việc/Lít.",
+                                    "1. Average daily income: ~325,000 VND/day (~$13 USD).\n2. Income per minute: 325,000 ÷ 480 = ~677 VND/min.\n3. 1L RON 95 price: ~28,000 VND/L.\n➔ Work time: 28,000 ÷ 677 = ~41 mins of work per Liter."
+                                ),
                                 color = TextPrimaryDark,
                                 fontSize = 11.sp,
                                 lineHeight = 16.sp
@@ -654,23 +689,6 @@ fun WorldCompareScreen(
                         }
                     }
 
-                    // SO SÁNH QUỐC TẾ
-                    Text(
-                        text = "📌 So sánh nhanh với các nước:",
-                        color = TextPrimaryDark,
-                        fontSize = 12.sp,
-                        fontWeight = FontWeight.Bold
-                    )
-                    Text(
-                        text = "• 🇸🇬 Singapore: Xăng ~55.000 đ/L, nhưng lương ~230 USD/ngày (11.980 đ/phút) ➔ Chỉ mất ~4.5 phút làm việc/Lít.\n\n" +
-                               "• 🇲🇾 Malaysia: Nhờ chính phủ trợ giá xăng, người dân chỉ mất ~6 phút làm việc/Lít.\n\n" +
-                               "• 🇱🇦 Lào: Xăng ~35.000 đ/L, thu nhập ~6 USD/ngày (312 đ/phút) ➔ Phải làm việc tới ~126 phút (~2 giờ 6 phút)/Lít.",
-                        color = TextSecondaryDark,
-                        fontSize = 11.sp,
-                        lineHeight = 16.sp
-                    )
-
-                    // NGUỒN DỮ LIỆU MINH BẠCH
                     Surface(
                         color = DarkBackground,
                         shape = RoundedCornerShape(8.dp),
@@ -683,7 +701,10 @@ fun WorldCompareScreen(
                             Text(text = "🏛️", fontSize = 16.sp)
                             Spacer(modifier = Modifier.width(6.dp))
                             Text(
-                                text = "Nguồn dữ liệu: Giá xăng từ GlobalPetrolPrices & Bộ Công Thương. Thu nhập bình quân từ Ngân hàng Thế giới (World Bank) & Tổ chức Lao động Quốc tế (ILO).",
+                                text = tr(
+                                    "Nguồn dữ liệu: Giá xăng từ GlobalPetrolPrices & Bộ Công Thương. Thu nhập bình quân từ Ngân hàng Thế giới (World Bank) & ILO.",
+                                    "Sources: Fuel prices from GlobalPetrolPrices & MOIT Vietnam. Income data from World Bank & ILO."
+                                ),
                                 color = TextSecondaryDark,
                                 fontSize = 10.sp,
                                 lineHeight = 14.sp
@@ -697,7 +718,7 @@ fun WorldCompareScreen(
                     onClick = { showInfoDialog = false },
                     colors = ButtonDefaults.buttonColors(containerColor = PetrolTeal)
                 ) {
-                    Text("Đã hiểu rõ", color = androidx.compose.ui.graphics.Color.Black, fontWeight = FontWeight.Bold)
+                    Text(tr("Đã hiểu rõ", "Got it"), color = Color.Black, fontWeight = FontWeight.Bold)
                 }
             }
         )
@@ -735,13 +756,13 @@ fun CurrencyToggleChip(
     onClick: () -> Unit
 ) {
     Surface(
-        color = if (isSelected) PetrolTeal else androidx.compose.ui.graphics.Color.Transparent,
+        color = if (isSelected) PetrolTeal else Color.Transparent,
         shape = RoundedCornerShape(16.dp),
         modifier = Modifier.clickable { onClick() }
     ) {
         Text(
             text = label,
-            color = if (isSelected) androidx.compose.ui.graphics.Color.Black else TextSecondaryDark,
+            color = if (isSelected) Color.Black else TextSecondaryDark,
             fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Medium,
             fontSize = 11.5.sp,
             maxLines = 1,
@@ -762,9 +783,9 @@ fun CountryFuelRow(
     currencyFormat: NumberFormat,
     onInfoClick: () -> Unit
 ) {
+    val lang = LocalAppLanguage.current
     val isVn = country.isCurrent
 
-    // Tính thời gian làm việc để mua 1L xăng (1 ngày làm việc chuẩn = 8 giờ = 480 phút)
     val workingMinutes = if (country.dailyIncomeUsd > 0) {
         (country.priceUsd / country.dailyIncomeUsd) * 480
     } else {
@@ -772,17 +793,16 @@ fun CountryFuelRow(
     }
     val diffMinutes = (workingMinutes - vnWorkMinutes).roundToInt()
 
-    // Phụ đề dưới tên quốc gia
     val subtagText = when {
-        isVn -> "Chuẩn đối chiếu Việt Nam"
-        country.note.isNotBlank() -> country.note
+        isVn -> tr("Chuẩn đối chiếu Việt Nam", "Vietnam Benchmark")
+        country.note.isNotBlank() && lang == AppLang.VI -> country.note
         country.priceUsd < vnPriceUsd -> {
             val percentCheaper = ((1.0 - country.priceUsd / vnPriceUsd) * 100).roundToInt()
-            "Rẻ hơn VN $percentCheaper%"
+            tr("Rẻ hơn VN $percentCheaper%", "$percentCheaper% cheaper than VN")
         }
         else -> {
             val percentHigher = ((country.priceUsd / vnPriceUsd - 1.0) * 100).roundToInt()
-            "Cao hơn VN $percentHigher%"
+            tr("Cao hơn VN $percentHigher%", "$percentHigher% higher than VN")
         }
     }
 
@@ -804,7 +824,6 @@ fun CountryFuelRow(
                 horizontalArrangement = Arrangement.SpaceBetween,
                 verticalAlignment = Alignment.CenterVertically
             ) {
-                // Bên trái: Số thứ tự + Cờ + Tên quốc gia + Subtag
                 Row(
                     modifier = Modifier.weight(1f),
                     verticalAlignment = Alignment.CenterVertically
@@ -820,7 +839,7 @@ fun CountryFuelRow(
                     Spacer(modifier = Modifier.width(8.dp))
                     Column {
                         Text(
-                            text = country.name,
+                            text = translateCountryName(country.name, country.code, lang),
                             color = if (isVn) PetrolTeal else TextPrimaryDark,
                             fontSize = 14.sp,
                             fontWeight = if (isVn) FontWeight.Bold else FontWeight.SemiBold,
@@ -839,12 +858,11 @@ fun CountryFuelRow(
 
                 Spacer(modifier = Modifier.width(8.dp))
 
-                // Bên phải: Giá tiền + Pill so sánh tương quan số phút
                 Column(horizontalAlignment = Alignment.End) {
                     val priceText = if (currency == "USD") {
                         "$${country.priceUsd}/L"
                     } else {
-                        "${currencyFormat.format(country.priceVnd)} đ/L"
+                        "${currencyFormat.format(country.priceVnd)} ${tr("đ/L", "VND/L")}"
                     }
 
                     Text(
@@ -858,7 +876,6 @@ fun CountryFuelRow(
 
                     Spacer(modifier = Modifier.height(3.dp))
 
-                    // Pill so với VN (Thời gian làm việc)
                     Surface(
                         color = when {
                             isVn -> PetrolTeal.copy(alpha = 0.2f)
@@ -869,11 +886,12 @@ fun CountryFuelRow(
                         shape = RoundedCornerShape(6.dp),
                         modifier = Modifier.clickable { onInfoClick() }
                     ) {
+                        val unitMin = tr("ph/L", "m/L")
                         val badgeText = when {
-                            isVn -> "⏱ ~${workingMinutes.roundToInt()} ph/L"
-                            diffMinutes < 0 -> "⏱ $diffMinutes ph/L"
-                            diffMinutes > 0 -> "⏱ +$diffMinutes ph/L"
-                            else -> "⏱ Bằng VN"
+                            isVn -> "⏱ ~${workingMinutes.roundToInt()} $unitMin"
+                            diffMinutes < 0 -> "⏱ $diffMinutes $unitMin"
+                            diffMinutes > 0 -> "⏱ +$diffMinutes $unitMin"
+                            else -> tr("⏱ Bằng VN", "⏱ Same as VN")
                         }
                         val badgeColor = when {
                             isVn -> PetrolTeal
@@ -897,7 +915,6 @@ fun CountryFuelRow(
 
             Spacer(modifier = Modifier.height(10.dp))
 
-            // Thanh tỉ lệ so sánh trực quan (Dual-tone: PetrolTeal nếu rẻ hơn hoặc bằng VN, Slate Blue nếu đắt hơn)
             val ratio = (country.priceUsd / maxPriceUsd).toFloat().coerceIn(0.04f, 1f)
             val barColor = if (country.priceUsd <= vnPriceUsd) PetrolTeal else Color(0xFF38BDF8)
 

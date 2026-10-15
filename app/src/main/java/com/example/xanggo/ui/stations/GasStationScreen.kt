@@ -10,6 +10,9 @@ import androidx.activity.result.contract.ActivityResultContracts
 import androidx.core.content.ContextCompat
 import com.example.xanggo.data.NearbyStation
 import com.example.xanggo.data.NearbyStationRepository
+import com.example.xanggo.i18n.AppLang
+import com.example.xanggo.i18n.LocalAppLanguage
+import com.example.xanggo.i18n.tr
 import kotlinx.coroutines.launch
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
@@ -33,7 +36,6 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.example.xanggo.theme.*
-import com.example.xanggo.ui.components.GasPumpVector
 import com.example.xanggo.ui.components.LocationPinVector
 import androidx.compose.ui.text.style.TextOverflow
 import java.text.Normalizer
@@ -49,16 +51,19 @@ private sealed interface NearbyState {
 
 private data class BrandStyle(val label: String, val color: Color, val emoji: String)
 
-private fun brandStyle(key: String): BrandStyle = when (key) {
+private fun brandStyle(key: String, isEn: Boolean = false): BrandStyle = when (key) {
     "PETROLIMEX" -> BrandStyle("Petrolimex", Color(0xFFF97316), "🟠")
     "PVOIL" -> BrandStyle("PVOIL", Color(0xFF38BDF8), "🔵")
     "SAIGON_PETRO" -> BrandStyle("Saigon Petro", Color(0xFF10B981), "🟢")
     "IDEMITSU" -> BrandStyle("Idemitsu Q8", Color(0xFFEF4444), "🔴")
-    else -> BrandStyle("Cây xăng", Color(0xFF94A3B8), "⛽")
+    else -> BrandStyle(if (isEn) "Gas Station" else "Cây xăng", Color(0xFF94A3B8), "⛽")
 }
 
-private fun formatDistance(meters: Int): String =
-    if (meters < 1000) "$meters m" else String.format(java.util.Locale.US, "%.1f km", meters / 1000.0).replace('.', ',')
+private fun formatDistance(meters: Int, isEn: Boolean = false): String =
+    if (meters < 1000) "$meters m" else {
+        val formatted = String.format(java.util.Locale.US, "%.1f km", meters / 1000.0)
+        if (isEn) formatted else formatted.replace('.', ',')
+    }
 
 private fun hasLocationPermission(context: Context): Boolean =
     ContextCompat.checkSelfPermission(context, Manifest.permission.ACCESS_COARSE_LOCATION) == PackageManager.PERMISSION_GRANTED ||
@@ -67,6 +72,8 @@ private fun hasLocationPermission(context: Context): Boolean =
 @Composable
 fun GasStationScreen() {
     val context = LocalContext.current
+    val lang = LocalAppLanguage.current
+    val isEn = lang == AppLang.EN
     val scope = rememberCoroutineScope()
     var searchQuery by remember { mutableStateOf("") }
     var selectedBrandFilter by remember { mutableStateOf("ALL") } // "ALL", "PETROLIMEX", "PVOIL", "SAIGON_PETRO", "IDEMITSU"
@@ -113,7 +120,7 @@ fun GasStationScreen() {
             val matchBrand = selectedBrandFilter == "ALL" || station.brandKey == selectedBrandFilter
             val matchQuery = query.isEmpty() ||
                 removeVietnameseAccents(station.name).contains(query) ||
-                removeVietnameseAccents(brandStyle(station.brandKey).label).contains(query) ||
+                removeVietnameseAccents(brandStyle(station.brandKey, isEn).label).contains(query) ||
                 removeVietnameseAccents(station.address).contains(query)
             matchBrand && matchQuery
         }
@@ -168,14 +175,14 @@ fun GasStationScreen() {
                     Column {
                         Row(verticalAlignment = Alignment.CenterVertically) {
                             Text(
-                                text = "Tìm Trạm ",
+                                text = tr("Tìm Trạm ", "Find Gas "),
                                 color = TextPrimaryDark,
                                 fontSize = 18.sp,
                                 fontWeight = FontWeight.Bold,
                                 maxLines = 1
                             )
                             Text(
-                                text = "Xăng",
+                                text = tr("Xăng", "Stations"),
                                 color = PetrolTeal,
                                 fontSize = 18.sp,
                                 fontWeight = FontWeight.Bold,
@@ -183,7 +190,7 @@ fun GasStationScreen() {
                             )
                         }
                         Text(
-                            text = "Trạm chính hãng gần bạn",
+                            text = tr("Trạm chính hãng gần bạn", "Official stations near you"),
                             color = TextSecondaryDark,
                             fontSize = 11.sp,
                             maxLines = 1,
@@ -202,7 +209,7 @@ fun GasStationScreen() {
                 modifier = Modifier.fillMaxWidth(),
                 placeholder = {
                     Text(
-                        text = "🔍 Quận, đường, tên cây xăng…",
+                        text = tr("🔍 Quận, đường, tên cây xăng…", "🔍 District, street, station name…"),
                         color = TextSecondaryDark,
                         fontSize = 13.sp,
                         maxLines = 1,
@@ -230,7 +237,7 @@ fun GasStationScreen() {
             )
         }
 
-        // 3. THẺ HERO RADAR LỚN (Theo phong cách Mockup bạn cung cấp)
+        // 3. THẺ HERO RADAR LỚN
         item {
             Card(
                 modifier = Modifier.fillMaxWidth(),
@@ -239,7 +246,6 @@ fun GasStationScreen() {
                 border = androidx.compose.foundation.BorderStroke(1.5.dp, PetrolTeal.copy(alpha = 0.7f))
             ) {
                 Column(modifier = Modifier.padding(16.dp)) {
-                    // Header thẻ: Icon to + Tiêu đề + Nút "Bản đồ ›" (Tối ưu chống tràn màn hình hẹp)
                     Row(
                         modifier = Modifier.fillMaxWidth(),
                         verticalAlignment = Alignment.CenterVertically
@@ -269,7 +275,7 @@ fun GasStationScreen() {
                         Spacer(modifier = Modifier.width(10.dp))
                         Column(modifier = Modifier.weight(1f)) {
                             Text(
-                                text = "Trạm gần bạn",
+                                text = tr("Trạm gần bạn", "Stations Near You"),
                                 color = TextPrimaryDark,
                                 fontSize = 15.sp,
                                 fontWeight = FontWeight.Bold,
@@ -277,7 +283,7 @@ fun GasStationScreen() {
                                 overflow = TextOverflow.Ellipsis
                             )
                             Text(
-                                text = "Chỉ đường 1 chạm",
+                                text = tr("Chỉ đường 1 chạm", "1-tap GPS navigation"),
                                 color = TextSecondaryDark,
                                 fontSize = 11.sp,
                                 maxLines = 1,
@@ -287,7 +293,6 @@ fun GasStationScreen() {
 
                         Spacer(modifier = Modifier.width(6.dp))
 
-                        // Nút "Bản đồ ›" tinh gọn chống vỡ layout
                         Surface(
                             color = PetrolTeal,
                             shape = RoundedCornerShape(10.dp),
@@ -300,7 +305,7 @@ fun GasStationScreen() {
                                 Text(text = "🗺️", fontSize = 11.sp)
                                 Spacer(modifier = Modifier.width(3.dp))
                                 Text(
-                                    text = "Bản đồ ›",
+                                    text = tr("Bản đồ ›", "Map ›"),
                                     color = Color.Black,
                                     fontSize = 11.5.sp,
                                     fontWeight = FontWeight.Bold,
@@ -313,7 +318,7 @@ fun GasStationScreen() {
 
                     Spacer(modifier = Modifier.height(14.dp))
 
-                    // Lưới 4 thương hiệu lớn tại Việt Nam dạng 2x2 Grid (Cực kỳ rộng rãi, không bao giờ bị cắt chữ)
+                    // Lưới 4 thương hiệu lớn tại Việt Nam dạng 2x2 Grid
                     Column(
                         modifier = Modifier.fillMaxWidth(),
                         verticalArrangement = Arrangement.spacedBy(8.dp)
@@ -324,7 +329,7 @@ fun GasStationScreen() {
                         ) {
                             BrandOptionCard(
                                 name = "Petrolimex",
-                                subTag = "Phổ biến",
+                                subTag = tr("Phổ biến · QR", "Popular · QR Pay"),
                                 logoEmoji = "🟠",
                                 accentColor = Color(0xFFF97316),
                                 isSelected = selectedBrandFilter == "PETROLIMEX",
@@ -335,7 +340,7 @@ fun GasStationScreen() {
                             )
                             BrandOptionCard(
                                 name = "PVOIL",
-                                subTag = "PVOIL Easy",
+                                subTag = "PVOIL Easy · QR",
                                 logoEmoji = "🔵",
                                 accentColor = Color(0xFF38BDF8),
                                 isSelected = selectedBrandFilter == "PVOIL",
@@ -352,7 +357,7 @@ fun GasStationScreen() {
                         ) {
                             BrandOptionCard(
                                 name = "Saigon Petro",
-                                subTag = "Miền Nam",
+                                subTag = tr("Miền Nam", "Southern VN"),
                                 logoEmoji = "🟢",
                                 accentColor = Color(0xFF10B981),
                                 isSelected = selectedBrandFilter == "SAIGON_PETRO",
@@ -363,7 +368,7 @@ fun GasStationScreen() {
                             )
                             BrandOptionCard(
                                 name = "Idemitsu Q8",
-                                subTag = "Chuẩn Nhật",
+                                subTag = tr("Chuẩn Nhật · Thẻ", "Japanese · Card"),
                                 logoEmoji = "🔴",
                                 accentColor = Color(0xFFEF4444),
                                 isSelected = selectedBrandFilter == "IDEMITSU",
@@ -395,7 +400,6 @@ fun GasStationScreen() {
                                 .padding(10.dp),
                             verticalAlignment = Alignment.CenterVertically
                         ) {
-                            // Canvas mô phỏng bản đồ Radar thu gọn 85dp
                             Box(
                                 modifier = Modifier
                                     .size(width = 85.dp, height = 62.dp)
@@ -406,7 +410,6 @@ fun GasStationScreen() {
                                 Canvas(modifier = Modifier.fillMaxSize()) {
                                     val w = size.width
                                     val h = size.height
-                                    // Đường phố mô phỏng
                                     drawLine(
                                         color = Color(0xFF1E293B),
                                         start = Offset(0f, h * 0.4f),
@@ -426,13 +429,11 @@ fun GasStationScreen() {
                                         strokeWidth = 2f
                                     )
 
-                                    // Vòng hào quang Radar phát sáng
                                     drawCircle(
                                         color = PetrolTeal.copy(alpha = 0.25f),
                                         radius = 20f,
                                         center = Offset(w * 0.48f, h * 0.52f)
                                     )
-                                    // Điểm người dùng (User Location Dot)
                                     drawCircle(
                                         color = Color(0xFF38BDF8),
                                         radius = 7f,
@@ -444,7 +445,6 @@ fun GasStationScreen() {
                                         center = Offset(w * 0.48f, h * 0.52f)
                                     )
 
-                                    // Điểm cây xăng lân cận
                                     drawCircle(color = PetrolTeal, radius = 5f, center = Offset(w * 0.22f, h * 0.3f))
                                     drawCircle(color = PetrolTeal, radius = 5f, center = Offset(w * 0.78f, h * 0.35f))
                                     drawCircle(color = PetrolTeal, radius = 5f, center = Offset(w * 0.82f, h * 0.72f))
@@ -453,7 +453,6 @@ fun GasStationScreen() {
 
                             Spacer(modifier = Modifier.width(12.dp))
 
-                            // Thông tin cây xăng gần nhất bên phải
                             Column(modifier = Modifier.weight(1f)) {
                                 Row(verticalAlignment = Alignment.CenterVertically) {
                                     Icon(
@@ -464,8 +463,8 @@ fun GasStationScreen() {
                                     )
                                     Spacer(modifier = Modifier.width(5.dp))
                                     Text(
-                                        text = nearest?.let { "${it.name} · ${formatDistance(it.distanceMeters)}" }
-                                            ?: "Cây xăng gần nhất",
+                                        text = nearest?.let { "${it.name} · ${formatDistance(it.distanceMeters, isEn)}" }
+                                            ?: tr("Cây xăng gần nhất", "Nearest gas station"),
                                         color = TextPrimaryDark,
                                         fontSize = 11.5.sp,
                                         fontWeight = FontWeight.Bold,
@@ -478,7 +477,7 @@ fun GasStationScreen() {
                                     Text(text = "🧭", fontSize = 11.sp)
                                     Spacer(modifier = Modifier.width(4.dp))
                                     Text(
-                                        text = "Mở Google Maps",
+                                        text = tr("Mở Google Maps", "Open Google Maps"),
                                         color = PetrolTeal,
                                         fontSize = 10.5.sp,
                                         fontWeight = FontWeight.SemiBold,
@@ -516,7 +515,10 @@ fun GasStationScreen() {
                     Text(text = "📍", fontSize = 16.sp)
                     Spacer(modifier = Modifier.width(6.dp))
                     Text(
-                        text = if (nearbyState is NearbyState.Loaded) "Gần bạn (${filteredStations.size})" else "Gần bạn",
+                        text = if (nearbyState is NearbyState.Loaded)
+                            tr("Gần bạn (${filteredStations.size})", "Nearby (${filteredStations.size})")
+                        else
+                            tr("Gần bạn", "Nearby"),
                         color = TextPrimaryDark,
                         fontSize = 15.sp,
                         fontWeight = FontWeight.Bold,
@@ -529,7 +531,7 @@ fun GasStationScreen() {
 
                 if (nearbyState is NearbyState.Loaded) {
                     Text(
-                        text = "↻ Làm mới",
+                        text = tr("↻ Làm mới", "↻ Refresh"),
                         color = PetrolTeal,
                         fontSize = 12.sp,
                         fontWeight = FontWeight.SemiBold,
@@ -545,9 +547,12 @@ fun GasStationScreen() {
             NearbyState.NeedPermission -> item {
                 NearbyInfoCard(
                     emoji = "📍",
-                    title = "Bật vị trí để xem cây xăng thật quanh bạn",
-                    message = "Vị trí chỉ dùng để tìm trạm quanh bạn, XăngGo không lưu lại.",
-                    actionLabel = "Cho phép vị trí",
+                    title = tr("Bật vị trí để xem cây xăng thật quanh bạn", "Enable location to see nearby gas stations"),
+                    message = tr(
+                        "Vị trí chỉ dùng để tìm trạm quanh bạn, XăngGo không lưu lại.",
+                        "Your location is only used to find nearby stations and is never stored."
+                    ),
+                    actionLabel = tr("Cho phép vị trí", "Allow Location"),
                     onAction = requestPermission
                 )
             }
@@ -566,7 +571,11 @@ fun GasStationScreen() {
                             modifier = Modifier.size(18.dp)
                         )
                         Spacer(modifier = Modifier.width(10.dp))
-                        Text("Đang tìm cây xăng quanh bạn…", color = TextSecondaryDark, fontSize = 12.sp)
+                        Text(
+                            tr("Đang tìm cây xăng quanh bạn…", "Finding gas stations near you…"),
+                            color = TextSecondaryDark,
+                            fontSize = 12.sp
+                        )
                     }
                 }
             }
@@ -574,12 +583,17 @@ fun GasStationScreen() {
             is NearbyState.Failed -> item {
                 NearbyInfoCard(
                     emoji = if (s.locationIssue) "📡" else "⚠️",
-                    title = if (s.locationIssue) "Chưa lấy được vị trí" else "Không tải được danh sách",
-                    message = if (s.locationIssue) "Hãy bật Định vị (GPS) trên máy rồi thử lại."
-                              else "Kiểm tra kết nối mạng rồi thử lại, hoặc mở Google Maps.",
-                    actionLabel = "Thử lại",
+                    title = if (s.locationIssue)
+                        tr("Chưa lấy được vị trí", "Location unavailable")
+                    else
+                        tr("Không tải được danh sách", "Could not load stations"),
+                    message = if (s.locationIssue)
+                        tr("Hãy bật Định vị (GPS) trên máy rồi thử lại.", "Please enable GPS on your device and try again.")
+                    else
+                        tr("Kiểm tra kết nối mạng rồi thử lại, hoặc mở Google Maps.", "Check your internet connection and retry, or open Google Maps."),
+                    actionLabel = tr("Thử lại", "Retry"),
                     onAction = { load(force = true) },
-                    secondaryLabel = "Mở Google Maps",
+                    secondaryLabel = tr("Mở Google Maps", "Open Google Maps"),
                     onSecondary = { openMapsSearchDirect(context, "cây xăng gần đây") }
                 )
             }
@@ -589,12 +603,14 @@ fun GasStationScreen() {
                     item {
                         NearbyInfoCard(
                             emoji = "🔍",
-                            title = if (s.stations.isEmpty()) "Chưa có dữ liệu cây xăng trong 5 km"
-                                    else "Không có trạm khớp bộ lọc",
-                            message = "Bạn có thể tìm trực tiếp trên Google Maps.",
-                            actionLabel = "Mở Google Maps",
+                            title = if (s.stations.isEmpty())
+                                tr("Chưa có dữ liệu cây xăng trong 5 km", "No station data within 5 km")
+                            else
+                                tr("Không có trạm khớp bộ lọc", "No stations match your filter"),
+                            message = tr("Bạn có thể tìm trực tiếp trên Google Maps.", "You can search directly on Google Maps."),
+                            actionLabel = tr("Mở Google Maps", "Open Google Maps"),
                             onAction = {
-                                val brand = if (selectedBrandFilter == "ALL") "" else brandStyle(selectedBrandFilter).label + " "
+                                val brand = if (selectedBrandFilter == "ALL") "" else brandStyle(selectedBrandFilter, isEn).label + " "
                                 openMapsSearchDirect(context, "cây xăng ${brand}gần đây")
                             }
                         )
@@ -603,12 +619,14 @@ fun GasStationScreen() {
                     items(filteredStations, key = { it.id }) { station ->
                         StationDetailCard(
                             station = station,
-                            onDirectClick = { openDirections(context, station.lat, station.lon) }
+                            isEn = isEn,
+                            onDirectClick = { openDirections(context, station.lat, station.lon) },
+                            onShareClick = { shareStationLocation(context, station, isEn) }
                         )
                     }
                     item {
                         Text(
-                            text = "Dữ liệu trạm © OpenStreetMap contributors",
+                            text = tr("Dữ liệu trạm © OpenStreetMap contributors", "Station data © OpenStreetMap contributors"),
                             color = TextSecondaryDark.copy(alpha = 0.6f),
                             fontSize = 9.sp,
                             modifier = Modifier.fillMaxWidth()
@@ -631,7 +649,7 @@ fun GasStationScreen() {
                         Text(text = "💡", fontSize = 16.sp)
                         Spacer(modifier = Modifier.width(6.dp))
                         Text(
-                            text = "Mẹo đổ xăng thông minh từ XăngGo",
+                            text = tr("Mẹo đổ xăng thông minh từ XăngGo", "Smart Refueling Tips by XăngGo"),
                             color = EnergyAmber,
                             fontSize = 13.sp,
                             fontWeight = FontWeight.Bold
@@ -639,8 +657,12 @@ fun GasStationScreen() {
                     }
                     Spacer(modifier = Modifier.height(6.dp))
                     Text(
-                        text = "• Luôn ưu tiên trạm xăng chính hãng (Petrolimex, PVOIL, Saigon Petro) để đảm bảo chuẩn chất lượng và đo đúng dung tích.\n" +
-                               "• Theo dõi đồng hồ cột bơm về 0 trước khi bơm và dừng khi vòi tự ngắt, không cố nhồi thêm.",
+                        text = tr(
+                            "• Luôn ưu tiên trạm xăng chính hãng (Petrolimex, PVOIL, Saigon Petro) để đảm bảo chuẩn chất lượng và đo đúng dung tích.\n" +
+                                "• Theo dõi đồng hồ cột bơm về 0 trước khi bơm và dừng khi vòi tự ngắt, không cố nhồi thêm.",
+                            "• Always prioritize official stations (Petrolimex, PVOIL, Saigon Petro) for guaranteed fuel quality and accurate metering.\n" +
+                                "• Check that the pump meter resets to 0 before fueling and stop at the first auto-click."
+                        ),
                         color = TextSecondaryDark,
                         fontSize = 11.sp,
                         lineHeight = 16.sp
@@ -650,7 +672,7 @@ fun GasStationScreen() {
         }
 
         item {
-            Spacer(modifier = Modifier.height(90.dp)) // Tránh che bottom navigation bar
+            Spacer(modifier = Modifier.height(90.dp))
         }
     }
 }
@@ -716,9 +738,11 @@ fun BrandOptionCard(
 @Composable
 private fun StationDetailCard(
     station: NearbyStation,
-    onDirectClick: () -> Unit
+    isEn: Boolean,
+    onDirectClick: () -> Unit,
+    onShareClick: () -> Unit
 ) {
-    val style = brandStyle(station.brandKey)
+    val style = brandStyle(station.brandKey, isEn)
     Card(
         modifier = Modifier
             .fillMaxWidth()
@@ -745,7 +769,7 @@ private fun StationDetailCard(
                 )
                 val subtitle = listOfNotNull(
                     station.address.ifBlank { null },
-                    if (station.openingHours == "24/7") "Mở 24/7" else null
+                    if (station.openingHours == "24/7") (if (isEn) "Open 24/7" else "Mở 24/7") else null
                 ).joinToString(" · ").ifBlank { style.label }
                 Text(
                     text = subtitle,
@@ -758,7 +782,7 @@ private fun StationDetailCard(
             Spacer(modifier = Modifier.width(8.dp))
             Column(horizontalAlignment = Alignment.End) {
                 Text(
-                    text = formatDistance(station.distanceMeters),
+                    text = formatDistance(station.distanceMeters, isEn),
                     color = PetrolTeal,
                     fontSize = 13.sp,
                     fontWeight = FontWeight.Bold,
@@ -766,16 +790,33 @@ private fun StationDetailCard(
                     softWrap = false
                 )
                 Spacer(modifier = Modifier.height(4.dp))
-                Surface(color = PetrolTeal, shape = RoundedCornerShape(8.dp)) {
-                    Text(
-                        text = "🧭 Đi",
-                        color = Color.Black,
-                        fontSize = 11.sp,
-                        fontWeight = FontWeight.Bold,
-                        maxLines = 1,
-                        softWrap = false,
-                        modifier = Modifier.padding(horizontal = 10.dp, vertical = 4.dp)
-                    )
+                Row(
+                    horizontalArrangement = Arrangement.spacedBy(5.dp),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Surface(
+                        color = DarkBackground,
+                        shape = RoundedCornerShape(8.dp),
+                        border = androidx.compose.foundation.BorderStroke(1.dp, DarkSurfaceVariant),
+                        modifier = Modifier.clickable { onShareClick() }
+                    ) {
+                        Text(
+                            text = "📤",
+                            fontSize = 11.sp,
+                            modifier = Modifier.padding(horizontal = 7.dp, vertical = 4.dp)
+                        )
+                    }
+                    Surface(color = PetrolTeal, shape = RoundedCornerShape(8.dp)) {
+                        Text(
+                            text = if (isEn) "🧭 Go" else "🧭 Đi",
+                            color = Color.Black,
+                            fontSize = 11.sp,
+                            fontWeight = FontWeight.Bold,
+                            maxLines = 1,
+                            softWrap = false,
+                            modifier = Modifier.padding(horizontal = 10.dp, vertical = 4.dp)
+                        )
+                    }
                 }
             }
         }
@@ -832,6 +873,25 @@ private fun NearbyInfoCard(
             }
         }
     }
+}
+
+/** Chia sẻ vị trí cây xăng qua Zalo, Messenger, SMS... */
+private fun shareStationLocation(context: Context, station: NearbyStation, isEn: Boolean) {
+    val mapsUrl = "https://www.google.com/maps/dir/?api=1&destination=${station.lat},${station.lon}"
+    val dist = formatDistance(station.distanceMeters, isEn)
+    val text = if (isEn) {
+        "⛽ ${station.name} ($dist away)\n📍 ${station.address.ifBlank { "Google Maps GPS" }}\n🧭 Directions: $mapsUrl\n— Shared via XăngGo"
+    } else {
+        "⛽ ${station.name} (cách $dist)\n📍 ${station.address.ifBlank { "Định vị Google Maps" }}\n🧭 Chỉ đường: $mapsUrl\n— Chia sẻ từ ứng dụng XăngGo"
+    }
+    val sendIntent = Intent(Intent.ACTION_SEND).apply {
+        type = "text/plain"
+        putExtra(Intent.EXTRA_TEXT, text)
+    }
+    context.startActivity(
+        Intent.createChooser(sendIntent, if (isEn) "Share gas station" else "Chia sẻ vị trí cây xăng")
+            .addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+    )
 }
 
 /** Mở Google Maps chỉ đường thẳng tới toạ độ cây xăng (fallback sang web nếu không có app Maps). */
