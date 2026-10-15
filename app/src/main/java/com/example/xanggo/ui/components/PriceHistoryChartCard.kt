@@ -16,7 +16,12 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.*
 import androidx.compose.ui.graphics.drawscope.Stroke
+import androidx.compose.animation.core.FastOutSlowInEasing
+import androidx.compose.animation.core.animateIntAsState
+import androidx.compose.animation.core.tween
+import androidx.compose.ui.hapticfeedback.HapticFeedbackType
 import androidx.compose.ui.input.pointer.pointerInput
+import androidx.compose.ui.platform.LocalHapticFeedback
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -35,6 +40,7 @@ fun PriceHistoryChartCard(
 ) {
     if (history.isEmpty()) return
 
+    val haptic = LocalHapticFeedback.current
     // 0: RON 95-III, 1: E5 RON 92, 2: Dầu DO
     var selectedFuelType by remember { mutableIntStateOf(0) }
     // Vị trí điểm đang được người dùng chạm/kéo ngón tay
@@ -55,6 +61,11 @@ fun PriceHistoryChartCard(
     val activeIndex = selectedPointIndex ?: (history.size - 1)
     val activeHistoryPoint = history.getOrNull(activeIndex) ?: history.last()
     val activePrice = pricePoints.getOrNull(activeIndex) ?: pricePoints.last()
+    val animatedActivePrice by animateIntAsState(
+        targetValue = activePrice,
+        animationSpec = tween(durationMillis = 220, easing = FastOutSlowInEasing),
+        label = "ChartActivePriceAnim"
+    )
 
     // Tính mức biến động của điểm đang chọn so với điểm trước đó
     val prevPrice = if (activeIndex > 0) pricePoints[activeIndex - 1] else activePrice
@@ -147,6 +158,7 @@ fun PriceHistoryChartCard(
                     label = "RON 95-III",
                     isSelected = selectedFuelType == 0,
                     onClick = {
+                        if (selectedFuelType != 0) haptic.performHapticFeedback(HapticFeedbackType.TextHandleMove)
                         selectedFuelType = 0
                         selectedPointIndex = null
                     },
@@ -156,6 +168,7 @@ fun PriceHistoryChartCard(
                     label = "E5 RON 92",
                     isSelected = selectedFuelType == 1,
                     onClick = {
+                        if (selectedFuelType != 1) haptic.performHapticFeedback(HapticFeedbackType.TextHandleMove)
                         selectedFuelType = 1
                         selectedPointIndex = null
                     },
@@ -165,6 +178,7 @@ fun PriceHistoryChartCard(
                     label = tr("Dầu DO", "Diesel DO"),
                     isSelected = selectedFuelType == 2,
                     onClick = {
+                        if (selectedFuelType != 2) haptic.performHapticFeedback(HapticFeedbackType.TextHandleMove)
                         selectedFuelType = 2
                         selectedPointIndex = null
                     },
@@ -222,7 +236,7 @@ fun PriceHistoryChartCard(
                                 fontSize = 10.sp
                             )
                             Text(
-                                text = "${currencyFormat.format(activePrice)} ${tr("đ/lít", "VND/L")}",
+                                text = "${currencyFormat.format(animatedActivePrice)} ${tr("đ/lít", "VND/L")}",
                                 color = PetrolTeal,
                                 fontSize = 14.sp,
                                 fontWeight = FontWeight.Bold
@@ -239,7 +253,12 @@ fun PriceHistoryChartCard(
                 fullDates = history.map { it.fullDate },
                 activeIndex = activeIndex,
                 currencyFormat = currencyFormat,
-                onPointSelected = { selectedPointIndex = it }
+                onPointSelected = { newIdx ->
+                    if (newIdx != selectedPointIndex) {
+                        haptic.performHapticFeedback(HapticFeedbackType.TextHandleMove)
+                        selectedPointIndex = newIdx
+                    }
+                }
             )
 
             // 5. Gợi ý tương tác (Pill button sang trọng)

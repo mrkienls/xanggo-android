@@ -1,19 +1,20 @@
 package com.example.xanggo.ui.main
 
 import android.widget.Toast
+import androidx.compose.animation.Crossfade
+import androidx.compose.animation.core.tween
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
-import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.clip
-import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.hapticfeedback.HapticFeedbackType
+import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.LocalHapticFeedback
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import androidx.compose.ui.platform.LocalContext
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation3.runtime.NavKey
@@ -36,6 +37,7 @@ fun MainScreen(
     modifier: Modifier = Modifier
 ) {
     val context = LocalContext.current
+    val haptic = LocalHapticFeedback.current
     val viewModel: MainScreenViewModel = viewModel {
         MainScreenViewModel(DefaultFuelRepository(context.cacheDir))
     }
@@ -44,12 +46,14 @@ fun MainScreen(
     var appLang by remember { mutableStateOf(LanguagePrefs.getSavedLang(context)) }
 
     val toggleLang = {
+        haptic.performHapticFeedback(HapticFeedbackType.TextHandleMove)
         val next = if (appLang == AppLang.VI) AppLang.EN else AppLang.VI
         appLang = next
         LanguagePrefs.saveLang(context, next)
     }
 
     val triggerRefresh = {
+        haptic.performHapticFeedback(HapticFeedbackType.LongPress)
         viewModel.refreshData()
         val msg = if (appLang == AppLang.EN) "Refreshing latest fuel prices…" else "Đang kiểm tra bảng giá xăng mới nhất…"
         Toast.makeText(context, msg, Toast.LENGTH_SHORT).show()
@@ -70,7 +74,10 @@ fun MainScreen(
                     ) {
                         NavigationBarItem(
                             selected = currentTab == 0,
-                            onClick = { viewModel.selectTab(0) },
+                            onClick = {
+                                if (currentTab != 0) haptic.performHapticFeedback(HapticFeedbackType.TextHandleMove)
+                                viewModel.selectTab(0)
+                            },
                             icon = {
                                 Icon(
                                     imageVector = GasPumpVector,
@@ -96,7 +103,10 @@ fun MainScreen(
 
                         NavigationBarItem(
                             selected = currentTab == 1,
-                            onClick = { viewModel.selectTab(1) },
+                            onClick = {
+                                if (currentTab != 1) haptic.performHapticFeedback(HapticFeedbackType.TextHandleMove)
+                                viewModel.selectTab(1)
+                            },
                             icon = {
                                 Icon(
                                     imageVector = LocationPinVector,
@@ -124,7 +134,10 @@ fun MainScreen(
 
                         NavigationBarItem(
                             selected = currentTab == 2,
-                            onClick = { viewModel.selectTab(2) },
+                            onClick = {
+                                if (currentTab != 2) haptic.performHapticFeedback(HapticFeedbackType.TextHandleMove)
+                                viewModel.selectTab(2)
+                            },
                             icon = {
                                 Icon(
                                     imageVector = GlobeVector,
@@ -166,21 +179,27 @@ fun MainScreen(
                         }
                     }
                     is MainUiState.Success -> {
-                        when (currentTab) {
-                            0 -> VietnamFuelScreen(
-                                data = state.vietnamData,
-                                worldData = state.worldData,
-                                onNavigateToStations = { viewModel.selectTab(1) },
-                                onNavigateToWorld = { viewModel.selectTab(2) },
-                                onToggleLanguage = toggleLang,
-                                onRefresh = triggerRefresh
-                            )
-                            1 -> GasStationScreen()
-                            else -> WorldCompareScreen(
-                                data = state.worldData,
-                                onToggleLanguage = toggleLang,
-                                onRefresh = triggerRefresh
-                            )
+                        Crossfade(
+                            targetState = currentTab,
+                            animationSpec = tween(durationMillis = 220),
+                            label = "MainTabCrossfade"
+                        ) { tab ->
+                            when (tab) {
+                                0 -> VietnamFuelScreen(
+                                    data = state.vietnamData,
+                                    worldData = state.worldData,
+                                    onNavigateToStations = { viewModel.selectTab(1) },
+                                    onNavigateToWorld = { viewModel.selectTab(2) },
+                                    onToggleLanguage = toggleLang,
+                                    onRefresh = triggerRefresh
+                                )
+                                1 -> GasStationScreen()
+                                else -> WorldCompareScreen(
+                                    data = state.worldData,
+                                    onToggleLanguage = toggleLang,
+                                    onRefresh = triggerRefresh
+                                )
+                            }
                         }
                     }
                     is MainUiState.Error -> {
