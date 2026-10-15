@@ -1,5 +1,6 @@
 {
-  "updated_at": "2026-10-15T20:19:50.561985+07:00",
+  "updated_at": "15/10/2026 22:57",
+  "updated_epoch": 1792079858,
   "announcement_title": "Bảng giá xăng dầu ngày 15/10/2026",
   "source": "Kỳ điều hành Liên Bộ Công Thương - Tài chính (Petrolimex)",
   "items": [
@@ -24,8 +25,8 @@
       "is_featured": false
     },
     {
-      "id": "do_0,05s_ii",
-      "name": "Dầu DO 0,05S-II",
+      "id": "do_005s_ii",
+      "name": "Dầu DO 0.05S-II",
       "zone_1": 29120,
       "zone_2": 29700,
       "delta": -590,
@@ -34,8 +35,8 @@
       "is_featured": false
     },
     {
-      "id": "do_0,001s_v",
-      "name": "Dầu DO 0,001S-V",
+      "id": "do_0001s_v",
+      "name": "Dầu DO 0.001S-V",
       "zone_1": 30520,
       "zone_2": 31130,
       "delta": -590,

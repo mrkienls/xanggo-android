@@ -1,7 +1,7 @@
 """
-XăngGo - Hệ Thống Crawler Backend Tự Động 0 Đồng
+XăngGo - Hệ Thống Crawler Backend Tự Động Đa Nguồn (Multi-Source Failover)
 Thu thập giá xăng Việt Nam thời gian thực, tỷ giá quốc tế và chỉ số Sức mua (Affordability).
-Đồng bộ vào Firebase Firestore và xuất file tĩnh (Static CDN).
+Đồng bộ vào Firebase Firestore và xuất file tĩnh (GitHub Raw CDN).
 """
 import os
 import sys
@@ -36,58 +36,74 @@ OUTPUT_DIR = os.path.join(os.path.dirname(__file__), "output")
 os.makedirs(OUTPUT_DIR, exist_ok=True)
 
 HEADERS = {
-    "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
+    "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36",
     "Accept-Language": "vi-VN,vi;q=0.9,en-US;q=0.8,en;q=0.7",
 }
 
 # -------------------------------------------------------------
-# 1. THU THẬP BẢNG GIÁ XĂNG DẦU VIỆT NAM THỜI GIAN THỰC
+# 1. THU THẬP BẢNG GIÁ XĂNG DẦU VIỆT NAM THỜI GIAN THỰC (2 NGUỒN DỰ PHÒNG)
 # -------------------------------------------------------------
-def fetch_vietnam_fuel_prices():
+def fetch_vietnam_fuel_prices(previous_items=None):
     """
-    Cào bảng giá xăng dầu thời gian thực.
-    Nguồn ưu tiên 1: Cổng dữ liệu cập nhật kỳ điều hành trực tiếp.
-    Nguồn dự phòng 2: Fallback chuẩn xác.
+    Cào bảng giá xăng dầu thời gian thực với 2 nguồn tự động chuyển đổi (Failover):
+    - Nguồn 1: vietnambiz.vn (Có sẵn giá Vùng 1 + mức tăng/giảm delta)
+    - Nguồn 2 (Dự phòng): webgia.com/gia-xang-dau/petrolimex/ (Có sẵn giá Vùng 1 & Vùng 2 chuẩn Petrolimex)
     """
-    logger.info("Đang kết nối tới cổng dữ liệu xăng dầu Việt Nam...")
-    url = "https://vietnambiz.vn/gia-xang-dau-hom-nay.html"
-    
+    prev_map = {}
+    if previous_items:
+        for it in previous_items:
+            prev_map[it.get("id", "")] = it
+
+    # --- NGUỒN 1: VietnamBiz ---
+    logger.info("Đang kết nối Nguồn 1 (vietnambiz.vn)...")
     try:
-        res = requests.get(url, headers=HEADERS, timeout=12)
+        res = requests.get("https://vietnambiz.vn/gia-xang-dau-hom-nay.html", headers=HEADERS, timeout=12)
         if res.status_code == 200:
-            soup = BeautifulSoup(res.text, 'html.parser')
-            table = soup.find('table')
+            soup = BeautifulSoup(res.text, "html.parser")
+            table = soup.find("table")
             if table:
                 items = parse_vietnambiz_table(table)
-                if items:
-                    logger.info(f"Cào thành công {len(items)} mặt hàng xăng dầu mới nhất từ bảng giá kỳ điều hành!")
+                if items and len(items) >= 3:
+                    logger.info(f"Nguồn 1 thành công: {len(items)} mặt hàng xăng dầu mới nhất!")
                     return items
     except Exception as e:
-        logger.warning(f"Lỗi khi cào dữ liệu live: {e}")
+        logger.warning(f"Nguồn 1 (vietnambiz.vn) gặp lỗi: {e}")
 
-    # Không bịa số: trả None để run() giữ nguyên dữ liệu thật của lần cào thành công gần nhất
-    logger.error("Không cào được bảng giá Việt Nam. Sẽ giữ dữ liệu lần trước.")
+    # --- NGUỒN 2 (DỰ PHÒNG): WebGia Petrolimex ---
+    logger.info("Đang chuyển sang Nguồn 2 dự phòng (webgia.com/gia-xang-dau/petrolimex/)...")
+    try:
+        res = requests.get("https://webgia.com/gia-xang-dau/petrolimex/", headers=HEADERS, timeout=12)
+        if res.status_code == 200:
+            soup = BeautifulSoup(res.text, "html.parser")
+            table = soup.find("table")
+            if table:
+                items = parse_webgia_petrolimex_table(table, prev_map)
+                if items and len(items) >= 3:
+                    logger.info(f"Nguồn 2 (webgia.com) thành công: {len(items)} mặt hàng Petrolimex!")
+                    return items
+    except Exception as e:
+        logger.warning(f"Nguồn 2 (webgia.com) gặp lỗi: {e}")
+
+    logger.error("Cả 2 nguồn trực tuyến đều không phản hồi. Sẽ giữ dữ liệu thật của kỳ gần nhất.")
     return None
 
 
 def parse_vietnambiz_table(table):
-    """Trích xuất từng hàng của bảng giá kỳ điều hành mới nhất"""
+    """Trích xuất từng hàng của bảng giá kỳ điều hành từ VietnamBiz"""
     items = []
-    rows = table.find_all('tr')
+    rows = table.find_all("tr")
     for row in rows:
-        cols = [td.get_text(strip=True) for td in row.find_all(['td', 'th'])]
+        cols = [td.get_text(strip=True) for td in row.find_all(["td", "th"])]
         if len(cols) >= 4 and any(char.isdigit() for char in cols[2]):
-            name = cols[1]
+            name = normalize_fuel_display_name(cols[1])
             try:
-                # Giá Vùng 1: ví dụ '28.250 đ' -> 28250
-                zone_1 = int(''.join(filter(str.isdigit, cols[2])))
-                
-                # Giá Vùng 2 theo quy định Petrolimex bằng 102% giá Vùng 1
-                zone_2 = int(round(zone_1 * 1.02 / 10) * 10) # Làm tròn chục
+                zone_1 = int("".join(filter(str.isdigit, cols[2])))
+                if zone_1 < 10000 or zone_1 > 60000:
+                    continue
+                zone_2 = int(round(zone_1 * 1.02 / 10) * 10)
 
-                # Chênh lệch delta: ví dụ '+1070' -> 1070 hoặc '-590' -> -590
-                raw_delta = cols[3].replace('đ', '').replace('.', '').replace(',', '').strip()
-                delta = int(raw_delta) if raw_delta else 0
+                raw_delta = cols[3].replace("đ", "").replace(".", "").replace(",", "").strip()
+                delta = int(raw_delta) if raw_delta.lstrip("+-").isdigit() else 0
 
                 item_id = generate_fuel_id(name)
                 items.append({
@@ -106,21 +122,78 @@ def parse_vietnambiz_table(table):
     return items
 
 
+def parse_webgia_petrolimex_table(table, prev_map):
+    """Trích xuất bảng giá Petrolimex chuẩn Vùng 1 & Vùng 2 từ WebGia"""
+    items = []
+    rows = table.find_all("tr")
+    for row in rows:
+        cols = [td.get_text(strip=True) for td in row.find_all(["td", "th"])]
+        if len(cols) >= 3 and any(char.isdigit() for char in cols[1]):
+            raw_name = cols[0]
+            name = normalize_fuel_display_name(raw_name)
+            try:
+                zone_1 = int("".join(filter(str.isdigit, cols[1])))
+                zone_2_digits = "".join(filter(str.isdigit, cols[2]))
+                zone_2 = int(zone_2_digits) if zone_2_digits else int(round(zone_1 * 1.02 / 10) * 10)
+                if zone_1 < 10000 or zone_1 > 60000:
+                    continue
+
+                item_id = generate_fuel_id(name)
+                prev_item = prev_map.get(item_id)
+                if prev_item and prev_item.get("zone_1"):
+                    diff = zone_1 - int(prev_item["zone_1"])
+                    delta = diff if diff != 0 else int(prev_item.get("delta", 0))
+                else:
+                    delta = 0
+
+                items.append({
+                    "id": item_id,
+                    "name": name,
+                    "zone_1": zone_1,
+                    "zone_2": zone_2,
+                    "delta": delta,
+                    "unit": "VND/lít",
+                    "badge_color": get_fuel_color(name),
+                    "is_featured": "95-iii" in name.lower()
+                })
+            except Exception:
+                continue
+    return items
+
+
+def normalize_fuel_display_name(raw_name):
+    n = raw_name.strip()
+    low = n.lower()
+    if "95" in low and ("mức 5" in low or "95-v" in low):
+        return "Xăng E10 RON 95-V" if "e10" in low else "Xăng RON 95-V"
+    if "95" in low and ("mức 3" in low or "95-iii" in low):
+        return "Xăng E10 RON 95-III" if "e10" in low else "Xăng RON 95-III"
+    if "e5" in low or "92" in low:
+        return "Xăng E5 RON 92-II"
+    if "0,001s" in low or "0.001s" in low:
+        return "Dầu DO 0.001S-V"
+    if "0,05s" in low or "0.05s" in low:
+        return "Dầu DO 0.05S-II"
+    if "dầu hỏa" in low:
+        return "Dầu hỏa 2-K"
+    return n.replace(",", ".")
+
+
 def generate_fuel_id(name):
     clean = name.lower().replace("xăng", "").replace("dầu", "").strip()
-    return clean.replace(" ", "_").replace("-", "_").replace(".", "")
+    return clean.replace(" ", "_").replace("-", "_").replace(".", "").replace(",", "")
 
 
 def get_fuel_color(name):
     n = name.lower()
     if "95-v" in n:
-        return "#D97706" # Vàng hổ phách cao cấp
+        return "#D97706"
     elif "95" in n:
-        return "#F97316" # Cam tiêu chuẩn
+        return "#F97316"
     elif "e5" in n or "92" in n:
-        return "#16A34A" # Xanh lá sinh học
+        return "#16A34A"
     elif "do" in n or "diesel" in n:
-        return "#475569" # Xám than
+        return "#475569"
     return "#0D9488"
 
 
@@ -140,7 +213,6 @@ HISTORY_MAX_POINTS = 12
 def build_price_history(previous_history, ron95, e5, do):
     """
     Nối thêm kỳ giá mới vào lịch sử đã lưu khi giá thay đổi (mỗi kỳ điều hành).
-    Không tự bịa các kỳ cũ: lịch sử chỉ gồm những kỳ crawler đã thực sự ghi nhận.
     """
     history = list(previous_history or [])
     last = history[-1] if history else None
@@ -345,7 +417,6 @@ ASEAN_SET = {"Vietnam", "Singapore", "Malaysia", "Thailand", "Indonesia", "Phili
 def fetch_global_fuel_data(vn_price_vnd=28250):
     logger.info("Đang cập nhật tỷ giá ngoại tệ và dữ liệu xăng 170 quốc gia toàn cầu...")
     
-    # 1. Lấy tỷ giá USD -> VND từ API mở miễn phí (lỗi thì dùng tỷ giá thật của lần trước)
     prev_world = load_previous("world_fuel.json") or {}
     usd_to_vnd = float(prev_world.get("usd_to_vnd_rate") or 25800.0)
     try:
@@ -357,10 +428,8 @@ def fetch_global_fuel_data(vn_price_vnd=28250):
     except Exception as e:
         logger.warning(f"Lỗi lấy tỷ giá hối đoái: {e}. Dùng tỷ giá lần trước {usd_to_vnd:,.0f}")
 
-    # Giá xăng tính theo USD của Việt Nam
     vn_price_usd = round(vn_price_vnd / usd_to_vnd, 2)
 
-    # 2. Cào dữ liệu trực tiếp 170 quốc gia từ GlobalPetrolPrices
     scraped_countries = []
     try:
         headers = {'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36'}
@@ -387,7 +456,6 @@ def fetch_global_fuel_data(vn_price_vnd=28250):
                     is_vn = (title == "Vietnam")
 
                     actual_usd = vn_price_usd if is_vn else price
-                    # VN dùng đúng giá Petrolimex, không quy đổi vòng qua USD (tránh lệch do làm tròn)
                     actual_vnd = int(vn_price_vnd) if is_vn else int(round(actual_usd * usd_to_vnd))
                     affordability = round((actual_usd / daily_income) * 100, 2)
 
@@ -407,10 +475,10 @@ def fetch_global_fuel_data(vn_price_vnd=28250):
     except Exception as e:
         logger.warning(f"Lỗi khi cào dữ liệu thế giới: {e}")
 
-    updated_at = datetime.now(VN_TZ).isoformat()
+    now = datetime.now(VN_TZ)
+    updated_at = now.strftime("%d/%m/%Y %H:%M")
     stale = False
 
-    # Cào thất bại: KHÔNG bịa giá. Dùng lại bộ dữ liệu thật của lần trước, chỉ cập nhật giá VN.
     if not scraped_countries:
         previous = load_previous("world_fuel.json")
         if not previous or not previous.get("countries"):
@@ -435,6 +503,7 @@ def fetch_global_fuel_data(vn_price_vnd=28250):
 
     return {
         "updated_at": updated_at,
+        "updated_epoch": int(now.timestamp()),
         "is_stale": stale,
         "usd_to_vnd_rate": usd_to_vnd,
         "total_countries": len(sorted_countries),
@@ -459,12 +528,11 @@ def sync_data(vn_data, global_data):
 
     logger.info(f"Đã xuất dữ liệu tĩnh ra {OUTPUT_DIR}")
 
-    # Firebase Firestore
     key_path = os.path.join(os.path.dirname(__file__), "serviceAccountKey.json")
     if os.path.exists(key_path) or os.environ.get("FIREBASE_SERVICE_ACCOUNT"):
         try:
             import firebase_admin
-            from firebase_admin import credentials, firestore, messaging
+            from firebase_admin import credentials, firestore
 
             if not firebase_admin._apps:
                 if os.environ.get("FIREBASE_SERVICE_ACCOUNT"):
@@ -494,8 +562,7 @@ def run():
     source_failed = False
     previous_vn = load_previous("vietnam_fuel.json")
 
-    # 1. Cào giá Việt Nam thời gian thực
-    items = fetch_vietnam_fuel_prices()
+    items = fetch_vietnam_fuel_prices((previous_vn or {}).get("items"))
     if items:
         hero_fuel = next((x for x in items if x.get("is_featured")), items[0])
         e5_fuel = next((x for x in items if "e5" in x.get("id", "") or "92" in x.get("id", "")), items[1] if len(items) > 1 else hero_fuel)
@@ -510,14 +577,14 @@ def run():
 
         now = datetime.now(VN_TZ)
         vn_data = {
-            "updated_at": now.isoformat(),
+            "updated_at": now.strftime("%d/%m/%Y %H:%M"),
+            "updated_epoch": int(now.timestamp()),
             "announcement_title": f"Bảng giá xăng dầu ngày {now.strftime('%d/%m/%Y')}",
             "source": "Kỳ điều hành Liên Bộ Công Thương - Tài chính (Petrolimex)",
             "items": items,
             "history": history
         }
     else:
-        # Giữ nguyên dữ liệu thật lần trước (không ghi đè), chỉ dùng để tính phần so sánh thế giới
         source_failed = True
         vn_data = None
         items = (previous_vn or {}).get("items") or []
@@ -526,20 +593,17 @@ def run():
             sys.exit(1)
         hero_fuel = next((x for x in items if x.get("is_featured")), items[0])
 
-    # 2. Cào giá thế giới & tính Sức mua
     global_data = fetch_global_fuel_data(vn_price_vnd=hero_fuel["zone_1"])
     if global_data is None or global_data.get("is_stale"):
         source_failed = True
 
-    # 3. Đồng bộ dữ liệu
     sync_data(vn_data, global_data)
     
-    # 4. In bảng kết quả tổng hợp ra màn hình để kiểm tra
     print("\n" + "="*60)
     print("           KẾT QUẢ CÀO DỮ LIỆU THỜI GIAN THỰC")
     print("="*60)
     if vn_data:
-        print(f"🕒 Thời gian: {vn_data['announcement_title']}")
+        print(f"🕒 Thời gian: {vn_data['announcement_title']} ({vn_data['updated_at']})")
     else:
         print("⚠️  Giá Việt Nam: GIỮ DỮ LIỆU LẦN TRƯỚC (nguồn lỗi)")
     if global_data:
@@ -559,7 +623,6 @@ def run():
     print("="*60 + "\n")
 
     if source_failed:
-        # Báo đỏ trên GitHub Actions để biết nguồn đang lỗi (dữ liệu cũ vẫn được giữ nguyên)
         logger.error("=== HOÀN TẤT NHƯNG CÓ NGUỒN LỖI: đã giữ dữ liệu lần trước ===")
         sys.exit(1)
     logger.info("=== HOÀN TẤT THÀNH CÔNG ===")
