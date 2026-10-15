@@ -1,5 +1,6 @@
 package com.example.xanggo.ui.main
 
+import android.widget.Toast
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -32,13 +33,27 @@ import com.example.xanggo.ui.world.WorldCompareScreen
 @Composable
 fun MainScreen(
     onItemClick: (NavKey) -> Unit = {},
-    modifier: Modifier = Modifier,
-    viewModel: MainScreenViewModel = viewModel { MainScreenViewModel(DefaultFuelRepository()) }
+    modifier: Modifier = Modifier
 ) {
     val context = LocalContext.current
+    val viewModel: MainScreenViewModel = viewModel {
+        MainScreenViewModel(DefaultFuelRepository(context.cacheDir))
+    }
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
     val currentTab by viewModel.currentTab.collectAsStateWithLifecycle()
     var appLang by remember { mutableStateOf(LanguagePrefs.getSavedLang(context)) }
+
+    val toggleLang = {
+        val next = if (appLang == AppLang.VI) AppLang.EN else AppLang.VI
+        appLang = next
+        LanguagePrefs.saveLang(context, next)
+    }
+
+    val triggerRefresh = {
+        viewModel.refreshData()
+        val msg = if (appLang == AppLang.EN) "Refreshing latest fuel prices…" else "Đang kiểm tra bảng giá xăng mới nhất…"
+        Toast.makeText(context, msg, Toast.LENGTH_SHORT).show()
+    }
 
     CompositionLocalProvider(LocalAppLanguage provides appLang) {
         Scaffold(
@@ -46,10 +61,8 @@ fun MainScreen(
             containerColor = DarkBackground,
             bottomBar = {
                 Column(modifier = Modifier.background(DarkBackground)) {
-                    // 1. Google AdMob Banner thích ứng (Chân trang cố định)
                     com.example.xanggo.ui.ads.AdMobBanner()
 
-                    // 2. Bottom Navigation Bar (3 Tab chuẩn: Giá Xăng | Tìm Trạm | Thế Giới)
                     NavigationBar(
                         containerColor = DarkSurface,
                         contentColor = TextPrimaryDark,
@@ -159,15 +172,14 @@ fun MainScreen(
                                 worldData = state.worldData,
                                 onNavigateToStations = { viewModel.selectTab(1) },
                                 onNavigateToWorld = { viewModel.selectTab(2) },
-                                onToggleLanguage = {
-                                    val next = if (appLang == AppLang.VI) AppLang.EN else AppLang.VI
-                                    appLang = next
-                                    LanguagePrefs.saveLang(context, next)
-                                }
+                                onToggleLanguage = toggleLang,
+                                onRefresh = triggerRefresh
                             )
                             1 -> GasStationScreen()
                             else -> WorldCompareScreen(
-                                data = state.worldData
+                                data = state.worldData,
+                                onToggleLanguage = toggleLang,
+                                onRefresh = triggerRefresh
                             )
                         }
                     }
@@ -185,32 +197,6 @@ fun MainScreen(
                     }
                 }
             }
-        }
-    }
-}
-
-@Composable
-fun AdMobAdaptiveBannerPlaceholder() {
-    Surface(
-        modifier = Modifier
-            .fillMaxWidth()
-            .height(50.dp)
-            .padding(horizontal = 16.dp, vertical = 4.dp),
-        color = DarkSurfaceVariant.copy(alpha = 0.4f),
-        shape = RoundedCornerShape(8.dp),
-        border = androidx.compose.foundation.BorderStroke(1.dp, TextSecondaryDark.copy(alpha = 0.15f))
-    ) {
-        Row(
-            modifier = Modifier.fillMaxSize(),
-            horizontalArrangement = Arrangement.Center,
-            verticalAlignment = Alignment.CenterVertically
-        ) {
-            Text(
-                text = "📢 [AdMob Adaptive Banner • 320x50]",
-                color = TextSecondaryDark.copy(alpha = 0.8f),
-                fontSize = 11.sp,
-                fontWeight = FontWeight.Medium
-            )
         }
     }
 }

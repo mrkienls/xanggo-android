@@ -16,15 +16,20 @@ import java.util.Locale
 import kotlin.math.abs
 import kotlin.math.roundToInt
 
+data class ShareCardPreviewData(
+    val bitmap: Bitmap,
+    val fileName: String,
+    val caption: String
+)
+
 object ShareCardGenerator {
 
     private val currencyFormat = NumberFormat.getNumberInstance(Locale.GERMANY)
 
     /**
-     * Tạo và chia sẻ ảnh Bảng Giá Xăng + Chi phí đổ đầy bình xe (1080x1320 PNG)
+     * Vẽ tấm ảnh Bảng Giá Xăng + Chi phí đổ xăng xe (1080x1320 PNG) để Xem trước hoặc Chia sẻ
      */
-    fun shareVietnamFuelCard(
-        context: Context,
+    fun createVietnamFuelCard(
         data: VietnamFuelData,
         zone: Int,
         provinceLabel: String,
@@ -34,7 +39,7 @@ object ShareCardGenerator {
         fullTankCost: Int,
         fullTankDelta: Int,
         lang: AppLang
-    ) {
+    ): ShareCardPreviewData {
         val width = 1080
         val height = 1320
         val bitmap = Bitmap.createBitmap(width, height, Bitmap.Config.ARGB_8888)
@@ -234,10 +239,11 @@ object ShareCardGenerator {
             textSize = 30f
             typeface = Typeface.create(Typeface.DEFAULT, Typeface.BOLD)
         }
+        val litersText = String.format(Locale.US, "%.1f", tankLiters).replace(".0", "")
         val tankTitle = if (lang == AppLang.EN) {
-            "🔥 FULL TANK COST TODAY ($vehicleName • ${tankLiters}L)"
+            "🔥 FULL TANK COST TODAY ($vehicleName • ${litersText}L)"
         } else {
-            "🔥 ĐỔ ĐẦY BÌNH HÔM NAY ($vehicleName • ${tankLiters}L)"
+            "🔥 ĐỔ ĐẦY BÌNH HÔM NAY ($vehicleName • ${litersText}L)"
         }
         canvas.drawText(tankTitle, 100f, 880f, tankHeaderPaint)
 
@@ -300,22 +306,40 @@ object ShareCardGenerator {
         canvas.drawText(footerText, width / 2f, 1235f, footerPaint)
 
         val shareCaption = if (lang == AppLang.EN) {
-            "⛽ Vietnam Fuel Price Today (${formatDateShort(data.updatedAt)}): ${translateFuelName(heroItem.name, lang)} is ${currencyFormat.format(heroPrice)} VND/L. Full tank for $vehicleName (${tankLiters}L) costs ${currencyFormat.format(fullTankCost)} VND! Check live prices & nearby gas stations with XăngGo: https://play.google.com/store/apps/details?id=vn.xanggo.app"
+            "⛽ Vietnam Fuel Price Today (${formatDateShort(data.updatedAt)}): ${translateFuelName(heroItem.name, lang)} is ${currencyFormat.format(heroPrice)} VND/L. Full tank for $vehicleName (${litersText}L) costs ${currencyFormat.format(fullTankCost)} VND! Check live prices & nearby gas stations with XăngGo: https://play.google.com/store/apps/details?id=vn.xanggo.app"
         } else {
-            "⛽ Giá xăng dầu hôm nay (${formatDateShort(data.updatedAt)}): ${heroItem.name} ở mức ${currencyFormat.format(heroPrice)} đ/lít. Đổ đầy bình $vehicleName (${tankLiters}L) hết ${currencyFormat.format(fullTankCost)} đ! Tra cứu giá xăng & tìm cây xăng gần nhất trên XăngGo: https://play.google.com/store/apps/details?id=vn.xanggo.app"
+            "⛽ Giá xăng dầu hôm nay (${formatDateShort(data.updatedAt)}): ${heroItem.name} ở mức ${currencyFormat.format(heroPrice)} đ/lít. Đổ đầy bình $vehicleName (${litersText}L) hết ${currencyFormat.format(fullTankCost)} đ! Tra cứu giá xăng & tìm cây xăng gần nhất trên XăngGo: https://play.google.com/store/apps/details?id=vn.xanggo.app"
         }
 
-        shareBitmap(context, bitmap, "xanggo_gia_xang.png", shareCaption)
+        return ShareCardPreviewData(bitmap, "xanggo_gia_xang.png", shareCaption)
+    }
+
+    fun shareVietnamFuelCard(
+        context: Context,
+        data: VietnamFuelData,
+        zone: Int,
+        provinceLabel: String,
+        vehicleName: String,
+        tankLiters: Double,
+        selectedFuelName: String,
+        fullTankCost: Int,
+        fullTankDelta: Int,
+        lang: AppLang
+    ) {
+        val card = createVietnamFuelCard(
+            data, zone, provinceLabel, vehicleName, tankLiters,
+            selectedFuelName, fullTankCost, fullTankDelta, lang
+        )
+        shareRenderedCard(context, card)
     }
 
     /**
-     * Tạo và chia sẻ ảnh Infographic So sánh Giá Xăng Đông Nam Á & Thế giới (1080x1320 PNG)
+     * Vẽ ảnh Infographic So sánh Giá Xăng Đông Nam Á & Thế giới (1080x1320 PNG)
      */
-    fun shareWorldCompareCard(
-        context: Context,
+    fun createWorldCompareCard(
         data: WorldFuelSummary,
         lang: AppLang
-    ) {
+    ): ShareCardPreviewData {
         val width = 1080
         val height = 1320
         val bitmap = Bitmap.createBitmap(width, height, Bitmap.Config.ARGB_8888)
@@ -360,7 +384,6 @@ object ShareCardGenerator {
         }
         canvas.drawText(subTitle, 60f, 160f, subPaint)
 
-        // Danh sách các nước ASEAN sắp xếp theo giá
         val asean = data.countries
             .filter { it.region == "ASEAN" }
             .sortedBy { it.priceVnd }
@@ -389,7 +412,6 @@ object ShareCardGenerator {
                 canvas.drawRoundRect(rowRect, 22f, 22f, borderPaint)
             }
 
-            // Tên nước
             val namePaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
                 color = if (isVn) Color.parseColor("#2DD4BF") else Color.WHITE
                 textSize = 30f
@@ -398,7 +420,6 @@ object ShareCardGenerator {
             val cName = translateCountryName(country.name, country.code, lang)
             canvas.drawText("#${idx + 1}  ${country.flag} $cName", 90f, y + 44f, namePaint)
 
-            // Chỉ số thu nhập & số phút làm việc
             val workMins = if (country.dailyIncomeUsd > 0) {
                 ((country.priceUsd / country.dailyIncomeUsd) * 480).roundToInt()
             } else 0
@@ -413,7 +434,6 @@ object ShareCardGenerator {
             }
             canvas.drawText(detailStr, 90f, y + 78f, detailPaint)
 
-            // Giá VND bên phải
             val pricePaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
                 color = if (isVn) Color.parseColor("#2DD4BF") else Color.WHITE
                 textSize = 34f
@@ -423,7 +443,6 @@ object ShareCardGenerator {
             val unitLabel = if (lang == AppLang.EN) "VND/L" else "đ/lít"
             canvas.drawText("${currencyFormat.format(country.priceVnd)} $unitLabel", 990f, y + 58f, pricePaint)
 
-            // Thanh tiến trình nhỏ dưới đáy row
             val barWidth = ((country.priceVnd.toFloat() / maxPrice) * 320f).coerceIn(30f, 320f)
             val barPaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
                 color = if (isVn) Color.parseColor("#14B8A6") else Color.parseColor("#475569")
@@ -436,7 +455,6 @@ object ShareCardGenerator {
             y += rowHeight
         }
 
-        // Footer
         val footerPaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
             color = Color.parseColor("#14B8A6")
             textSize = 28f
@@ -456,7 +474,20 @@ object ShareCardGenerator {
             "🌍 Bảng xếp hạng giá xăng & sức mua Đông Nam Á! Đổ 1 lít xăng ở Việt Nam tốn bao nhiêu phút làm việc so với Singapore, Thái Lan, Malaysia? Xem chi tiết trên XăngGo: https://play.google.com/store/apps/details?id=vn.xanggo.app"
         }
 
-        shareBitmap(context, bitmap, "xanggo_asean_ranking.png", shareCaption)
+        return ShareCardPreviewData(bitmap, "xanggo_asean_ranking.png", shareCaption)
+    }
+
+    fun shareWorldCompareCard(
+        context: Context,
+        data: WorldFuelSummary,
+        lang: AppLang
+    ) {
+        val card = createWorldCompareCard(data, lang)
+        shareRenderedCard(context, card)
+    }
+
+    fun shareRenderedCard(context: Context, card: ShareCardPreviewData) {
+        shareBitmap(context, card.bitmap, card.fileName, card.caption)
     }
 
     private fun drawDeltaPill(
@@ -530,7 +561,6 @@ object ShareCardGenerator {
             }
             context.startActivity(chooser)
         } catch (e: Exception) {
-            // Fallback chia sẻ dạng text nếu thiết bị hạn chế quyền file
             val textIntent = Intent(Intent.ACTION_SEND).apply {
                 type = "text/plain"
                 putExtra(Intent.EXTRA_TEXT, caption)

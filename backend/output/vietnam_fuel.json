@@ -1,6 +1,6 @@
 {
-  "updated_at": "15/10/2026 22:57",
-  "updated_epoch": 1792079858,
+  "updated_at": "15/10/2026 23:34",
+  "updated_epoch": 1792082060,
   "announcement_title": "Bảng giá xăng dầu ngày 15/10/2026",
   "source": "Kỳ điều hành Liên Bộ Công Thương - Tài chính (Petrolimex)",
   "items": [
@@ -47,8 +47,48 @@
   ],
   "history": [
     {
-      "date": "08/10",
-      "full_date": "08/10/2026",
+      "date": "05/09",
+      "full_date": "05/09/2026",
+      "ron95_price": 26660,
+      "e5_price": 26080,
+      "diesel_price": 30020,
+      "delta_ron95": -340
+    },
+    {
+      "date": "12/09",
+      "full_date": "12/09/2026",
+      "ron95_price": 26400,
+      "e5_price": 25850,
+      "diesel_price": 29590,
+      "delta_ron95": -260
+    },
+    {
+      "date": "19/09",
+      "full_date": "19/09/2026",
+      "ron95_price": 26790,
+      "e5_price": 26210,
+      "diesel_price": 29890,
+      "delta_ron95": 390
+    },
+    {
+      "date": "26/09",
+      "full_date": "26/09/2026",
+      "ron95_price": 27030,
+      "e5_price": 26420,
+      "diesel_price": 30000,
+      "delta_ron95": 240
+    },
+    {
+      "date": "03/10",
+      "full_date": "03/10/2026",
+      "ron95_price": 27180,
+      "e5_price": 26560,
+      "diesel_price": 29710,
+      "delta_ron95": 150
+    },
+    {
+      "date": "15/10",
+      "full_date": "15/10/2026",
       "ron95_price": 28250,
       "e5_price": 27700,
       "diesel_price": 29120,

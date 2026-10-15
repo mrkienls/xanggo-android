@@ -6,12 +6,10 @@ import com.example.xanggo.data.FuelRepository
 import com.example.xanggo.data.model.VietnamFuelData
 import com.example.xanggo.data.model.WorldFuelSummary
 import kotlinx.coroutines.flow.MutableStateFlow
-import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.catch
 import kotlinx.coroutines.flow.combine
-import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
 
 sealed interface MainUiState {
@@ -27,7 +25,7 @@ class MainScreenViewModel(
     private val fuelRepository: FuelRepository
 ) : ViewModel() {
 
-    private val _currentTab = MutableStateFlow(0) // 0: Giá xăng VN, 1: Thế giới
+    private val _currentTab = MutableStateFlow(0) // 0: Giá xăng VN, 1: Trạm xăng, 2: Thế giới
     val currentTab: StateFlow<Int> = _currentTab.asStateFlow()
 
     private val _uiState = MutableStateFlow<MainUiState>(MainUiState.Loading)
@@ -39,6 +37,10 @@ class MainScreenViewModel(
 
     fun selectTab(tabIndex: Int) {
         _currentTab.value = tabIndex
+    }
+
+    fun refreshData() {
+        fuelRepository.requestRefresh()
     }
 
     private fun loadData() {

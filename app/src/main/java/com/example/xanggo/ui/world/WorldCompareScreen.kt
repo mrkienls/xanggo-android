@@ -28,9 +28,12 @@ import com.example.xanggo.i18n.AppLang
 import com.example.xanggo.i18n.LocalAppLanguage
 import com.example.xanggo.i18n.tr
 import com.example.xanggo.i18n.translateCountryName
+import com.example.xanggo.i18n.translateCountryNote
 import com.example.xanggo.theme.*
 import com.example.xanggo.ui.components.GlobeVector
+import com.example.xanggo.ui.components.ShareCardPreviewDialog
 import com.example.xanggo.util.ShareCardGenerator
+import com.example.xanggo.util.ShareCardPreviewData
 import java.text.Normalizer
 import java.text.NumberFormat
 import java.util.Locale
@@ -38,7 +41,9 @@ import java.util.regex.Pattern
 
 @Composable
 fun WorldCompareScreen(
-    data: WorldFuelSummary
+    data: WorldFuelSummary,
+    onToggleLanguage: () -> Unit = {},
+    onRefresh: () -> Unit = {}
 ) {
     val context = LocalContext.current
     val lang = LocalAppLanguage.current
@@ -46,6 +51,7 @@ fun WorldCompareScreen(
     var selectedTab by remember { mutableIntStateOf(0) } // 0: ASEAN, 1: Top Rẻ, 2: Toàn Cầu
     var searchQuery by remember { mutableStateOf("") } // Từ khóa tìm kiếm quốc gia
     var showInfoDialog by remember { mutableStateOf(false) } // Hộp thoại giải thích Sức mua
+    var previewCard by remember { mutableStateOf<ShareCardPreviewData?>(null) }
     val currencyFormat = remember { NumberFormat.getNumberInstance(Locale.GERMANY) }
     val listState = rememberLazyListState()
 
@@ -189,21 +195,20 @@ fun WorldCompareScreen(
                         verticalAlignment = Alignment.CenterVertically,
                         horizontalArrangement = Arrangement.spacedBy(6.dp)
                     ) {
-                        // Nút Chia sẻ Infographic ASEAN 1 chạm
+                        // Nút Xem trước & Gửi ảnh Infographic ASEAN 1 chạm
                         Surface(
                             color = PetrolTeal.copy(alpha = 0.16f),
                             shape = RoundedCornerShape(16.dp),
                             border = androidx.compose.foundation.BorderStroke(1.dp, PetrolTeal.copy(alpha = 0.45f)),
                             modifier = Modifier.clickable {
-                                ShareCardGenerator.shareWorldCompareCard(
-                                    context = context,
+                                previewCard = ShareCardGenerator.createWorldCompareCard(
                                     data = data,
                                     lang = lang
                                 )
                             }
                         ) {
                             Text(
-                                text = tr("📤 Chia sẻ", "📤 Share"),
+                                text = tr("📸 Gửi ảnh", "📸 Share"),
                                 color = PetrolTeal,
                                 fontSize = 11.5.sp,
                                 fontWeight = FontWeight.Bold,
@@ -723,6 +728,13 @@ fun WorldCompareScreen(
             }
         )
     }
+
+    previewCard?.let { cardData ->
+        ShareCardPreviewDialog(
+            previewData = cardData,
+            onDismiss = { previewCard = null }
+        )
+    }
 }
 
 fun formatDisplayDate(raw: String): String {
@@ -795,7 +807,7 @@ fun CountryFuelRow(
 
     val subtagText = when {
         isVn -> tr("Chuẩn đối chiếu Việt Nam", "Vietnam Benchmark")
-        country.note.isNotBlank() && lang == AppLang.VI -> country.note
+        country.note.isNotBlank() -> translateCountryNote(country.note, lang)
         country.priceUsd < vnPriceUsd -> {
             val percentCheaper = ((1.0 - country.priceUsd / vnPriceUsd) * 100).roundToInt()
             tr("Rẻ hơn VN $percentCheaper%", "$percentCheaper% cheaper than VN")
