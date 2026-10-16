@@ -71,7 +71,7 @@ object ShareCardGenerator {
         }
         canvas.drawCircle(920f, 180f, 380f, glowPaint)
 
-        // 2. Header: Logo XăngGo + Ngày cập nhật
+        // 2. Header: Logo Giá Xăng 24h + Ngày cập nhật
         val logoBoxPaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
             color = Color.parseColor("#EF4444")
         }
@@ -85,15 +85,15 @@ object ShareCardGenerator {
 
         val titlePaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
             color = Color.WHITE
-            textSize = 54f
+            textSize = 50f
             typeface = Typeface.create(Typeface.DEFAULT, Typeface.BOLD)
         }
-        canvas.drawText("Xăng", 166f, 118f, titlePaint)
-        val xangWidth = titlePaint.measureText("Xăng")
+        canvas.drawText("Giá Xăng ", 166f, 118f, titlePaint)
+        val xangWidth = titlePaint.measureText("Giá Xăng ")
         val goPaint = Paint(titlePaint).apply {
             color = Color.parseColor("#14B8A6")
         }
-        canvas.drawText("Go", 166f + xangWidth, 118f, goPaint)
+        canvas.drawText("24h", 166f + xangWidth, 118f, goPaint)
 
         // Badge Vùng ở góc phải
         val zonePillPaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
@@ -291,7 +291,7 @@ object ShareCardGenerator {
         }
         canvas.drawText(deltaTankStr, 100f, 1082f, deltaTankPaint)
 
-        // 6. FOOTER WATERMARK XĂNGGO
+        // 6. FOOTER WATERMARK GIÁ XĂNG 24H
         val footerPaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
             color = Color.parseColor("#14B8A6")
             textSize = 28f
@@ -299,19 +299,19 @@ object ShareCardGenerator {
             textAlign = Paint.Align.CENTER
         }
         val footerText = if (lang == AppLang.EN) {
-            "📲 Download XăngGo on Google Play • Live Fuel Prices & Nearby Gas Stations"
+            "📲 Download Giá Xăng 24h on Google Play • Live Fuel Prices & Gas Stations"
         } else {
-            "📲 Tải app XăngGo trên Google Play • Giá Xăng & Cây Xăng Gần Nhất"
+            "📲 Tải app Giá Xăng 24h trên Google Play • Giá Xăng & Cây Xăng Gần Nhất"
         }
         canvas.drawText(footerText, width / 2f, 1235f, footerPaint)
 
         val shareCaption = if (lang == AppLang.EN) {
-            "⛽ Vietnam Fuel Price Today (${formatDateShort(data.updatedAt)}): ${translateFuelName(heroItem.name, lang)} is ${currencyFormat.format(heroPrice)} VND/L. Full tank for $vehicleName (${litersText}L) costs ${currencyFormat.format(fullTankCost)} VND! Check live prices & nearby gas stations with XăngGo: https://play.google.com/store/apps/details?id=vn.xanggo.app"
+            "⛽ Vietnam Fuel Price Today (${formatDateShort(data.updatedAt)}): ${translateFuelName(heroItem.name, lang)} is ${currencyFormat.format(heroPrice)} VND/L. Full tank for $vehicleName (${litersText}L) costs ${currencyFormat.format(fullTankCost)} VND! Check live prices & nearby gas stations with Giá Xăng 24h: https://play.google.com/store/apps/details?id=com.mrkienls.xanggo"
         } else {
-            "⛽ Giá xăng dầu hôm nay (${formatDateShort(data.updatedAt)}): ${heroItem.name} ở mức ${currencyFormat.format(heroPrice)} đ/lít. Đổ đầy bình $vehicleName (${litersText}L) hết ${currencyFormat.format(fullTankCost)} đ! Tra cứu giá xăng & tìm cây xăng gần nhất trên XăngGo: https://play.google.com/store/apps/details?id=vn.xanggo.app"
+            "⛽ Giá xăng dầu hôm nay (${formatDateShort(data.updatedAt)}): ${heroItem.name} ở mức ${currencyFormat.format(heroPrice)} đ/lít. Đổ đầy bình $vehicleName (${litersText}L) hết ${currencyFormat.format(fullTankCost)} đ! Tra cứu giá xăng & tìm cây xăng gần nhất trên Giá Xăng 24h: https://play.google.com/store/apps/details?id=com.mrkienls.xanggo"
         }
 
-        return ShareCardPreviewData(bitmap, "xanggo_gia_xang.png", shareCaption)
+        return ShareCardPreviewData(bitmap, "gia_xang_24h.png", shareCaption)
     }
 
     fun shareVietnamFuelCard(
@@ -378,9 +378,9 @@ object ShareCardGenerator {
             textSize = 26f
         }
         val subTitle = if (lang == AppLang.EN) {
-            "RON 95 Gasoline • % of daily income needed for 1 Liter • XăngGo App"
+            "RON 95 Gasoline • % of daily income needed for 1 Liter • Giá Xăng 24h"
         } else {
-            "Xăng RON 95 • Mua 1 lít xăng tốn bao nhiêu % thu nhập 1 ngày • XăngGo"
+            "Xăng RON 95 • Mua 1 lít xăng tốn bao nhiêu % thu nhập 1 ngày • Giá Xăng 24h"
         }
         canvas.drawText(subTitle, 60f, 160f, subPaint)
 
@@ -462,19 +462,19 @@ object ShareCardGenerator {
             textAlign = Paint.Align.CENTER
         }
         val footerText = if (lang == AppLang.EN) {
-            "📲 XăngGo on Google Play • Vietnam & World Fuel Price Tracker"
+            "📲 Giá Xăng 24h on Google Play • Vietnam & World Fuel Price Tracker"
         } else {
-            "📲 Tải XăngGo trên Google Play • Tra cứu giá xăng Việt Nam & Thế giới"
+            "📲 Tải Giá Xăng 24h trên Google Play • Tra cứu giá xăng Việt Nam & Thế giới"
         }
         canvas.drawText(footerText, width / 2f, 1245f, footerPaint)
 
         val shareCaption = if (lang == AppLang.EN) {
-            "🌍 ASEAN Fuel Price & Affordability Ranking! How much of daily income does 1 liter of gas cost in Vietnam vs Singapore, Thailand, Malaysia? Check live on XăngGo: https://play.google.com/store/apps/details?id=vn.xanggo.app"
+            "🌍 ASEAN Fuel Price & Affordability Ranking! How much of daily income does 1 liter of gas cost in Vietnam vs Singapore, Thailand, Malaysia? Check live on Giá Xăng 24h: https://play.google.com/store/apps/details?id=com.mrkienls.xanggo"
         } else {
-            "🌍 Bảng xếp hạng giá xăng & sức mua Đông Nam Á! Đổ 1 lít xăng ở Việt Nam tốn bao nhiêu phút làm việc so với Singapore, Thái Lan, Malaysia? Xem chi tiết trên XăngGo: https://play.google.com/store/apps/details?id=vn.xanggo.app"
+            "🌍 Bảng xếp hạng giá xăng & sức mua Đông Nam Á! Đổ 1 lít xăng ở Việt Nam tốn bao nhiêu phút làm việc so với Singapore, Thái Lan, Malaysia? Xem chi tiết trên Giá Xăng 24h: https://play.google.com/store/apps/details?id=com.mrkienls.xanggo"
         }
 
-        return ShareCardPreviewData(bitmap, "xanggo_asean_ranking.png", shareCaption)
+        return ShareCardPreviewData(bitmap, "gia_xang_24h_asean.png", shareCaption)
     }
 
     fun shareWorldCompareCard(
@@ -556,7 +556,7 @@ object ShareCardGenerator {
                 putExtra(Intent.EXTRA_TEXT, caption)
                 addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
             }
-            val chooser = Intent.createChooser(intent, "XăngGo").apply {
+            val chooser = Intent.createChooser(intent, "Giá Xăng 24h").apply {
                 addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
             }
             context.startActivity(chooser)
@@ -565,7 +565,7 @@ object ShareCardGenerator {
                 type = "text/plain"
                 putExtra(Intent.EXTRA_TEXT, caption)
             }
-            context.startActivity(Intent.createChooser(textIntent, "XăngGo"))
+            context.startActivity(Intent.createChooser(textIntent, "Giá Xăng 24h"))
         }
     }
 }

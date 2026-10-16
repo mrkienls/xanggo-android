@@ -201,19 +201,19 @@ fun VietnamFuelScreen(
                         Text(text = "⛽", fontSize = 17.sp)
                     }
                     Spacer(modifier = Modifier.width(7.dp))
-                    Row {
+                    Row(verticalAlignment = Alignment.CenterVertically) {
                         Text(
-                            text = "Xăng",
+                            text = "Giá Xăng ",
                             color = TextPrimaryDark,
-                            fontSize = 21.sp,
+                            fontSize = 18.sp,
                             fontWeight = FontWeight.ExtraBold,
                             maxLines = 1,
                             softWrap = false
                         )
                         Text(
-                            text = "Go",
+                            text = "24h",
                             color = PetrolTeal,
-                            fontSize = 21.sp,
+                            fontSize = 18.sp,
                             fontWeight = FontWeight.ExtraBold,
                             maxLines = 1,
                             softWrap = false

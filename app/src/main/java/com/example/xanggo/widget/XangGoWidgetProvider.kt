@@ -76,7 +76,7 @@ class XangGoWidgetProvider : AppWidgetProvider() {
 
             views.setTextViewText(
                 R.id.widget_title,
-                if (lang == AppLang.EN) "⛽ XăngGo • Fuel Price" else "⛽ XăngGo • Giá Xăng"
+                if (lang == AppLang.EN) "⛽ Giá Xăng 24h • Live" else "⛽ Giá Xăng 24h"
             )
             views.setTextViewText(
                 R.id.widget_zone,
