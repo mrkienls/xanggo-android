@@ -306,9 +306,9 @@ object ShareCardGenerator {
         canvas.drawText(footerText, width / 2f, 1235f, footerPaint)
 
         val shareCaption = if (lang == AppLang.EN) {
-            "⛽ Vietnam Fuel Price Today (${formatDateShort(data.updatedAt)}): ${translateFuelName(heroItem.name, lang)} is ${currencyFormat.format(heroPrice)} VND/L. Full tank for $vehicleName (${litersText}L) costs ${currencyFormat.format(fullTankCost)} VND! Check live prices & nearby gas stations with Giá Xăng 24h: https://play.google.com/store/apps/details?id=com.mrkienls.xanggo"
+            "⛽ Vietnam Fuel Price Today (${formatDateShort(data.updatedAt)}): ${translateFuelName(heroItem.name, lang)} is ${currencyFormat.format(heroPrice)} VND/L. Full tank for $vehicleName (${litersText}L) costs ${currencyFormat.format(fullTankCost)} VND! Check live prices & nearby gas stations with Giá Xăng 24h: https://play.google.com/store/apps/details?id=vn.xanggo.app"
         } else {
-            "⛽ Giá xăng dầu hôm nay (${formatDateShort(data.updatedAt)}): ${heroItem.name} ở mức ${currencyFormat.format(heroPrice)} đ/lít. Đổ đầy bình $vehicleName (${litersText}L) hết ${currencyFormat.format(fullTankCost)} đ! Tra cứu giá xăng & tìm cây xăng gần nhất trên Giá Xăng 24h: https://play.google.com/store/apps/details?id=com.mrkienls.xanggo"
+            "⛽ Giá xăng dầu hôm nay (${formatDateShort(data.updatedAt)}): ${heroItem.name} ở mức ${currencyFormat.format(heroPrice)} đ/lít. Đổ đầy bình $vehicleName (${litersText}L) hết ${currencyFormat.format(fullTankCost)} đ! Tra cứu giá xăng & tìm cây xăng gần nhất trên Giá Xăng 24h: https://play.google.com/store/apps/details?id=vn.xanggo.app"
         }
 
         return ShareCardPreviewData(bitmap, "gia_xang_24h.png", shareCaption)
@@ -469,9 +469,9 @@ object ShareCardGenerator {
         canvas.drawText(footerText, width / 2f, 1245f, footerPaint)
 
         val shareCaption = if (lang == AppLang.EN) {
-            "🌍 ASEAN Fuel Price & Affordability Ranking! How much of daily income does 1 liter of gas cost in Vietnam vs Singapore, Thailand, Malaysia? Check live on Giá Xăng 24h: https://play.google.com/store/apps/details?id=com.mrkienls.xanggo"
+            "🌍 ASEAN Fuel Price & Affordability Ranking! How much of daily income does 1 liter of gas cost in Vietnam vs Singapore, Thailand, Malaysia? Check live on Giá Xăng 24h: https://play.google.com/store/apps/details?id=vn.xanggo.app"
         } else {
-            "🌍 Bảng xếp hạng giá xăng & sức mua Đông Nam Á! Đổ 1 lít xăng ở Việt Nam tốn bao nhiêu phút làm việc so với Singapore, Thái Lan, Malaysia? Xem chi tiết trên Giá Xăng 24h: https://play.google.com/store/apps/details?id=com.mrkienls.xanggo"
+            "🌍 Bảng xếp hạng giá xăng & sức mua Đông Nam Á! Đổ 1 lít xăng ở Việt Nam tốn bao nhiêu phút làm việc so với Singapore, Thái Lan, Malaysia? Xem chi tiết trên Giá Xăng 24h: https://play.google.com/store/apps/details?id=vn.xanggo.app"
         }
 
         return ShareCardPreviewData(bitmap, "gia_xang_24h_asean.png", shareCaption)

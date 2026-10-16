@@ -19,8 +19,8 @@ android {
         applicationId = "vn.xanggo.app"
         minSdk = 24
         targetSdk = 36
-        versionCode = 1
-        versionName = "1.0"
+        versionCode = 2
+        versionName = "1.1"
 
         // ID test chính thức của Google cho bản debug
         manifestPlaceholders["admobAppId"] = "ca-app-pub-3940256099942544~3347511713"
