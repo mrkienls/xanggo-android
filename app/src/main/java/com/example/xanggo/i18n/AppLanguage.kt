@@ -42,19 +42,43 @@ fun tr(vi: String, en: String): String {
     return if (LocalAppLanguage.current == AppLang.EN) en else vi
 }
 
-fun translateFuelName(name: String, lang: AppLang): String {
-    if (lang == AppLang.VI) return name
-    return name
-        .replace("Xăng E10 RON 95-III", "Bio-Gasoline E10 RON 95-III")
-        .replace("Xăng E10 RON 95-V", "Bio-Gasoline E10 RON 95-V")
+fun translateFuelName(name: String, lang: AppLang, compact: Boolean = false): String {
+    val cleanVi = name
+        .replace("Xăng E10 RON 95-III", "Xăng RON 95-III")
+        .replace("Xăng E10 RON 95-V", "Xăng RON 95-V")
+        .replace("Dầu DO 0,05S-II", "Dầu DO 0.05S-II")
+        .replace("Dầu DO 0,001S-V", "Dầu DO 0.001S-V")
+
+    if (compact) {
+        return if (lang == AppLang.VI) {
+            cleanVi
+                .replace("Xăng E5 RON 92-II", "E5 RON 92-II")
+                .replace("Xăng E5 RON 92", "E5 RON 92")
+                .replace("Xăng RON 95-III", "RON 95-III")
+                .replace("Xăng RON 95-V", "RON 95-V")
+                .replace("Dầu Diesel 0.05S", "Dầu DO 0.05S")
+        } else {
+            cleanVi
+                .replace("Xăng E5 RON 92-II", "E5 RON 92-II")
+                .replace("Xăng E5 RON 92", "E5 RON 92")
+                .replace("Xăng RON 95-III", "RON 95-III")
+                .replace("Xăng RON 95-V", "RON 95-V")
+                .replace("Dầu DO 0.05S-II", "Diesel 0.05S-II")
+                .replace("Dầu DO 0.001S-V", "Diesel 0.001S-V")
+                .replace("Dầu Diesel 0.05S", "Diesel 0.05S")
+                .replace("Dầu hỏa 2-K", "Kerosene 2-K")
+                .replace("Dầu hỏa", "Kerosene")
+        }
+    }
+
+    if (lang == AppLang.VI) return cleanVi
+    return cleanVi
         .replace("Xăng RON 95-III", "Gasoline RON 95-III")
         .replace("Xăng RON 95-V", "Gasoline RON 95-V")
-        .replace("Xăng E5 RON 92-II", "Bio-Gasoline E5 RON 92-II")
-        .replace("Xăng E5 RON 92", "Bio-Gasoline E5 RON 92")
+        .replace("Xăng E5 RON 92-II", "Bio-Gas E5 RON 92-II")
+        .replace("Xăng E5 RON 92", "Bio-Gas E5 RON 92")
         .replace("Dầu DO 0.05S-II", "Diesel DO 0.05S-II")
-        .replace("Dầu DO 0,05S-II", "Diesel DO 0.05S-II")
         .replace("Dầu DO 0.001S-V", "Diesel DO 0.001S-V")
-        .replace("Dầu DO 0,001S-V", "Diesel DO 0.001S-V")
         .replace("Dầu Diesel 0.05S", "Diesel DO 0.05S")
         .replace("Dầu hỏa 2-K", "Kerosene 2-K")
         .replace("Dầu hỏa", "Kerosene")

@@ -165,9 +165,9 @@ def normalize_fuel_display_name(raw_name):
     n = raw_name.strip()
     low = n.lower()
     if "95" in low and ("mức 5" in low or "95-v" in low):
-        return "Xăng E10 RON 95-V" if "e10" in low else "Xăng RON 95-V"
+        return "Xăng RON 95-V"
     if "95" in low and ("mức 3" in low or "95-iii" in low):
-        return "Xăng E10 RON 95-III" if "e10" in low else "Xăng RON 95-III"
+        return "Xăng RON 95-III"
     if "e5" in low or "92" in low:
         return "Xăng E5 RON 92-II"
     if "0,001s" in low or "0.001s" in low:

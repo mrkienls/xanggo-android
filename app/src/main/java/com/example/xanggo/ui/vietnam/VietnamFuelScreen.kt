@@ -142,9 +142,21 @@ fun VietnamFuelScreen(
     val fullTankCost = (vehicleFuelItem.getPrice(selectedZone) * customLiters).roundToInt()
     val fullTankDelta = (vehicleFuelItem.delta * customLiters).roundToInt()
 
-    val displayZoneLabel = when {
+    val shareZoneLabel = when {
         selectedProvince.isNotEmpty() && !selectedProvince.startsWith("Vùng ") -> selectedProvince
         selectedZone == 1 -> tr("Vùng 1 (Chuẩn)", "Zone 1 (Std)")
+        else -> tr("Vùng 2 (+2%)", "Zone 2 (+2%)")
+    }
+
+    val headerZoneLabel = when {
+        selectedProvince.isNotEmpty() && !selectedProvince.startsWith("Vùng ") -> {
+            selectedProvince
+                .replace("TP. Hồ Chí Minh", "TP.HCM")
+                .replace("TP. ", "")
+                .replace(" (Z1)", " · V1")
+                .replace(" (Z2)", " · V2")
+        }
+        selectedZone == 1 -> tr("Vùng 1", "Zone 1")
         else -> tr("Vùng 2 (+2%)", "Zone 2 (+2%)")
     }
 
@@ -153,7 +165,7 @@ fun VietnamFuelScreen(
         previewCard = ShareCardGenerator.createVietnamFuelCard(
             data = data,
             zone = selectedZone,
-            provinceLabel = displayZoneLabel,
+            provinceLabel = shareZoneLabel,
             vehicleName = if (lang == AppLang.EN) currentVehicle.nameEn else currentVehicle.nameVi,
             tankLiters = customLiters,
             selectedFuelName = vehicleFuelItem.name,
@@ -168,9 +180,9 @@ fun VietnamFuelScreen(
             .fillMaxSize()
             .background(DarkBackground)
             .padding(horizontal = 16.dp),
-        verticalArrangement = Arrangement.spacedBy(12.dp)
+        verticalArrangement = Arrangement.spacedBy(10.dp)
     ) {
-        // 1. Header: Logo & Chế độ Ngoài trời (☀️/🌙) + Ngôn ngữ VI/EN + Chọn Vùng
+        // 1. Header: Logo & Chế độ Ngoài trời (☀️/🌙) + Ngôn ngữ VI/EN + Chọn Vùng (Không bị cắt chữ)
         item {
             Spacer(modifier = Modifier.height(4.dp))
             Row(
@@ -181,26 +193,30 @@ fun VietnamFuelScreen(
                 Row(verticalAlignment = Alignment.CenterVertically) {
                     Box(
                         modifier = Modifier
-                            .size(36.dp)
+                            .size(34.dp)
                             .clip(RoundedCornerShape(10.dp))
                             .background(Brush.linearGradient(listOf(Color(0xFFEF4444), Color(0xFFDC2626)))),
                         contentAlignment = Alignment.Center
                     ) {
-                        Text(text = "⛽", fontSize = 18.sp)
+                        Text(text = "⛽", fontSize = 17.sp)
                     }
-                    Spacer(modifier = Modifier.width(8.dp))
+                    Spacer(modifier = Modifier.width(7.dp))
                     Row {
                         Text(
                             text = "Xăng",
                             color = TextPrimaryDark,
-                            fontSize = 23.sp,
-                            fontWeight = FontWeight.ExtraBold
+                            fontSize = 21.sp,
+                            fontWeight = FontWeight.ExtraBold,
+                            maxLines = 1,
+                            softWrap = false
                         )
                         Text(
                             text = "Go",
                             color = PetrolTeal,
-                            fontSize = 23.sp,
-                            fontWeight = FontWeight.ExtraBold
+                            fontSize = 21.sp,
+                            fontWeight = FontWeight.ExtraBold,
+                            maxLines = 1,
+                            softWrap = false
                         )
                     }
                 }
@@ -212,7 +228,7 @@ fun VietnamFuelScreen(
                     // Nút 1 chạm Đổi Giao diện Ngoài trời (☀️ Sáng rõ dưới nắng) / Ban đêm (🌙 AMOLED)
                     Surface(
                         color = DarkSurface,
-                        shape = RoundedCornerShape(18.dp),
+                        shape = RoundedCornerShape(16.dp),
                         border = androidx.compose.foundation.BorderStroke(1.dp, DarkSurfaceVariant),
                         modifier = Modifier.clickable {
                             haptic.performHapticFeedback(HapticFeedbackType.TextHandleMove)
@@ -222,14 +238,16 @@ fun VietnamFuelScreen(
                         Text(
                             text = if (ThemeState.isLightMode) "☀️" else "🌙",
                             fontSize = 12.sp,
-                            modifier = Modifier.padding(horizontal = 8.dp, vertical = 5.dp)
+                            maxLines = 1,
+                            softWrap = false,
+                            modifier = Modifier.padding(horizontal = 7.dp, vertical = 5.dp)
                         )
                     }
 
                     // Nút chuyển ngôn ngữ nhanh VI / EN
                     Surface(
                         color = DarkSurface,
-                        shape = RoundedCornerShape(18.dp),
+                        shape = RoundedCornerShape(16.dp),
                         border = androidx.compose.foundation.BorderStroke(1.dp, DarkSurfaceVariant),
                         modifier = Modifier.clickable { onToggleLanguage() }
                     ) {
@@ -240,14 +258,14 @@ fun VietnamFuelScreen(
                             fontWeight = FontWeight.Bold,
                             maxLines = 1,
                             softWrap = false,
-                            modifier = Modifier.padding(horizontal = 8.dp, vertical = 6.dp)
+                            modifier = Modifier.padding(horizontal = 8.dp, vertical = 5.dp)
                         )
                     }
 
-                    // Nút chọn Vùng 1 / Vùng 2
+                    // Nút chọn Vùng 1 / Vùng 2 (Hiển thị trọn vẹn không bị cắt "...")
                     Surface(
                         color = PetrolTeal.copy(alpha = 0.12f),
-                        shape = RoundedCornerShape(20.dp),
+                        shape = RoundedCornerShape(18.dp),
                         border = androidx.compose.foundation.BorderStroke(1.dp, PetrolTeal.copy(alpha = 0.5f)),
                         modifier = Modifier.clickable {
                             haptic.performHapticFeedback(HapticFeedbackType.TextHandleMove)
@@ -255,23 +273,23 @@ fun VietnamFuelScreen(
                         }
                     ) {
                         Row(
-                            modifier = Modifier.padding(horizontal = 9.dp, vertical = 6.dp),
+                            modifier = Modifier.padding(horizontal = 9.dp, vertical = 5.dp),
                             verticalAlignment = Alignment.CenterVertically
                         ) {
                             Text(
-                                text = "📍 $displayZoneLabel ›",
+                                text = "📍 $headerZoneLabel ›",
                                 color = PetrolTeal,
                                 fontWeight = FontWeight.Bold,
                                 fontSize = 11.sp,
                                 maxLines = 1,
-                                overflow = TextOverflow.Ellipsis
+                                softWrap = false
                             )
                         }
                     }
                 }
             }
 
-            // Dòng thời gian cập nhật + Nút ↻ Làm mới + Đếm ngược kỳ điều hành Thứ Năm 15:00
+            // Dòng 2: Chip [🕒 Giờ cập nhật + ↻ Làm mới] bên trái & [⏳ Đếm ngược kỳ tới] bên phải
             Row(
                 modifier = Modifier
                     .fillMaxWidth()
@@ -279,40 +297,39 @@ fun VietnamFuelScreen(
                 horizontalArrangement = Arrangement.SpaceBetween,
                 verticalAlignment = Alignment.CenterVertically
             ) {
-                Row(
-                    verticalAlignment = Alignment.CenterVertically,
-                    modifier = Modifier.weight(1f, fill = false)
+                Surface(
+                    color = DarkSurface,
+                    shape = RoundedCornerShape(10.dp),
+                    border = androidx.compose.foundation.BorderStroke(1.dp, DarkSurfaceVariant.copy(alpha = 0.8f)),
+                    modifier = Modifier.clickable { onRefresh() }
                 ) {
-                    Text(
-                        text = "🕒 ${tr("Cập nhật", "Updated")}: ${formatIsoDateTime(data.updatedAt)}",
-                        color = TextSecondaryDark,
-                        fontSize = 11.sp,
-                        maxLines = 1,
-                        overflow = TextOverflow.Ellipsis
-                    )
-                    Spacer(modifier = Modifier.width(6.dp))
-                    Surface(
-                        color = DarkSurface,
-                        shape = RoundedCornerShape(8.dp),
-                        border = androidx.compose.foundation.BorderStroke(1.dp, PetrolTeal.copy(alpha = 0.4f)),
-                        modifier = Modifier.clickable { onRefresh() }
+                    Row(
+                        modifier = Modifier.padding(horizontal = 8.dp, vertical = 3.dp),
+                        verticalAlignment = Alignment.CenterVertically
                     ) {
                         Text(
-                            text = tr("↻ Làm mới", "↻ Refresh"),
+                            text = "🕒 ${formatCompactDateTime(data.updatedAt)}",
+                            color = TextSecondaryDark,
+                            fontSize = 11.sp,
+                            maxLines = 1,
+                            softWrap = false
+                        )
+                        Spacer(modifier = Modifier.width(6.dp))
+                        Text(
+                            text = tr("↻ Làm mới", "↻ Sync"),
                             color = PetrolTeal,
-                            fontSize = 10.5.sp,
+                            fontSize = 11.sp,
                             fontWeight = FontWeight.Bold,
                             maxLines = 1,
-                            softWrap = false,
-                            modifier = Modifier.padding(horizontal = 7.dp, vertical = 2.dp)
+                            softWrap = false
                         )
                     }
                 }
-                Spacer(modifier = Modifier.width(6.dp))
+
                 Text(
                     text = getNextAdjustmentCountdownText(lang),
                     color = EnergyAmber,
-                    fontSize = 10.5.sp,
+                    fontSize = 11.sp,
                     fontWeight = FontWeight.SemiBold,
                     maxLines = 1,
                     softWrap = false
@@ -320,7 +337,7 @@ fun VietnamFuelScreen(
             }
         }
 
-        // 2. Hero Card: RON 95-III (Thanh màu Cò Bơm, Đồng hồ nhảy số mượt, % biến động & Nút Gửi ảnh 1 chạm)
+        // 2. Hero Card: Xăng RON 95-III (Gọn gàng, không bị giãn chiều cao, không bị cắt tên xăng)
         item {
             val heroItem = data.items.firstOrNull { it.isFeatured } ?: data.items.first()
             val targetPrice = heroItem.getPrice(selectedZone)
@@ -342,116 +359,96 @@ fun VietnamFuelScreen(
                     1.2.dp,
                     Brush.linearGradient(
                         listOf(
-                            heroAccent.copy(alpha = 0.6f),
-                            PetrolTeal.copy(alpha = 0.45f),
-                            heroAccent.copy(alpha = 0.25f)
+                            heroAccent.copy(alpha = 0.55f),
+                            PetrolTeal.copy(alpha = 0.45f)
                         )
                     )
                 ),
-                elevation = CardDefaults.cardElevation(defaultElevation = 3.dp)
+                elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
             ) {
-                Box(
+                Column(
                     modifier = Modifier
                         .fillMaxWidth()
                         .background(
                             Brush.linearGradient(
                                 listOf(
-                                    heroAccent.copy(alpha = 0.10f),
+                                    heroAccent.copy(alpha = 0.09f),
                                     Color.Transparent,
                                     PetrolTeal.copy(alpha = 0.06f)
                                 )
                             )
                         )
+                        .padding(horizontal = 16.dp, vertical = 14.dp)
                 ) {
-                    // Thanh màu nhận diện Cò Bơm Xăng RON 95 bên trái
-                    Box(
-                        modifier = Modifier
-                            .align(Alignment.CenterStart)
-                            .width(5.dp)
-                            .height(88.dp)
-                            .clip(RoundedCornerShape(topEnd = 6.dp, bottomEnd = 6.dp))
-                            .background(
-                                Brush.verticalGradient(
-                                    listOf(heroAccent, PetrolTeal)
-                                )
-                            )
-                    )
-
-                    Column(modifier = Modifier.padding(start = 18.dp, end = 16.dp, top = 16.dp, bottom = 16.dp)) {
+                    // Hàng 1: Tên xăng đầy đủ (Xăng RON 95-III) + Nút Gửi ảnh
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
                         Row(
-                            modifier = Modifier.fillMaxWidth(),
-                            horizontalArrangement = Arrangement.SpaceBetween,
-                            verticalAlignment = Alignment.CenterVertically
+                            verticalAlignment = Alignment.CenterVertically,
+                            modifier = Modifier.weight(1f)
                         ) {
-                            Row(
-                                verticalAlignment = Alignment.CenterVertically,
-                                modifier = Modifier.weight(1f, fill = false)
-                            ) {
-                                Surface(
-                                    color = heroAccent.copy(alpha = 0.18f),
-                                    shape = RoundedCornerShape(8.dp),
-                                    border = androidx.compose.foundation.BorderStroke(0.8.dp, heroAccent.copy(alpha = 0.45f))
-                                ) {
-                                    Text(
-                                        text = "⛽",
-                                        fontSize = 14.sp,
-                                        modifier = Modifier.padding(horizontal = 6.dp, vertical = 4.dp)
-                                    )
-                                }
-                                Spacer(modifier = Modifier.width(8.dp))
-                                Text(
-                                    text = translateFuelName(heroItem.name, lang),
-                                    color = TextPrimaryDark,
-                                    fontSize = 16.sp,
-                                    fontWeight = FontWeight.Bold,
-                                    maxLines = 1,
-                                    overflow = TextOverflow.Ellipsis
-                                )
-                                Spacer(modifier = Modifier.width(6.dp))
-                                Surface(
-                                    color = heroAccent.copy(alpha = 0.16f),
-                                    shape = RoundedCornerShape(6.dp)
-                                ) {
-                                    Text(
-                                        text = getFuelNozzleBadgeText(heroItem, lang),
-                                        color = heroAccent,
-                                        fontSize = 9.sp,
-                                        fontWeight = FontWeight.ExtraBold,
-                                        modifier = Modifier.padding(horizontal = 5.dp, vertical = 2.dp)
-                                    )
-                                }
-                            }
-
-                            // Nút Xem & Gửi ảnh bảng giá 1 chạm
                             Surface(
-                                color = PetrolTeal.copy(alpha = 0.18f),
-                                shape = RoundedCornerShape(14.dp),
-                                border = androidx.compose.foundation.BorderStroke(1.dp, PetrolTeal.copy(alpha = 0.5f)),
-                                modifier = Modifier.clickable { openSharePreview() }
+                                color = heroAccent.copy(alpha = 0.18f),
+                                shape = RoundedCornerShape(8.dp),
+                                border = androidx.compose.foundation.BorderStroke(0.8.dp, heroAccent.copy(alpha = 0.45f))
                             ) {
-                                Row(
-                                    modifier = Modifier.padding(horizontal = 10.dp, vertical = 5.dp),
-                                    verticalAlignment = Alignment.CenterVertically
-                                ) {
-                                    Text(
-                                        text = tr("📸 Gửi ảnh", "📸 Share Card"),
-                                        color = PetrolTeal,
-                                        fontSize = 11.5.sp,
-                                        fontWeight = FontWeight.Bold,
-                                        maxLines = 1,
-                                        softWrap = false
-                                    )
-                                }
+                                Text(
+                                    text = "⛽",
+                                    fontSize = 14.sp,
+                                    maxLines = 1,
+                                    softWrap = false,
+                                    modifier = Modifier.padding(horizontal = 6.dp, vertical = 4.dp)
+                                )
                             }
+                            Spacer(modifier = Modifier.width(8.dp))
+                            Text(
+                                text = translateFuelName(heroItem.name, lang, compact = false),
+                                color = TextPrimaryDark,
+                                fontSize = 16.sp,
+                                fontWeight = FontWeight.Bold,
+                                maxLines = 1,
+                                softWrap = false,
+                                overflow = TextOverflow.Ellipsis
+                            )
                         }
 
-                        Spacer(modifier = Modifier.height(10.dp))
+                        Spacer(modifier = Modifier.width(8.dp))
 
+                        // Nút Xem & Gửi ảnh bảng giá 1 chạm
+                        Surface(
+                            color = PetrolTeal.copy(alpha = 0.16f),
+                            shape = RoundedCornerShape(14.dp),
+                            border = androidx.compose.foundation.BorderStroke(1.dp, PetrolTeal.copy(alpha = 0.5f)),
+                            modifier = Modifier.clickable { openSharePreview() }
+                        ) {
+                            Text(
+                                text = tr("📸 Gửi ảnh", "📸 Share"),
+                                color = PetrolTeal,
+                                fontSize = 11.5.sp,
+                                fontWeight = FontWeight.Bold,
+                                maxLines = 1,
+                                softWrap = false,
+                                modifier = Modifier.padding(horizontal = 10.dp, vertical = 5.dp)
+                            )
+                        }
+                    }
+
+                    Spacer(modifier = Modifier.height(10.dp))
+
+                    // Hàng 2: Giá tiền nổi bật + Huy hiệu biến động nằm cùng hàng cân đối
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
                         Row(verticalAlignment = Alignment.Bottom) {
                             Text(
                                 text = currencyFormat.format(animatedHeroPrice),
                                 color = TextPrimaryDark,
-                                fontSize = 36.sp,
+                                fontSize = 34.sp,
                                 fontWeight = FontWeight.ExtraBold,
                                 maxLines = 1,
                                 softWrap = false
@@ -459,45 +456,45 @@ fun VietnamFuelScreen(
                             Text(
                                 text = tr(" đ/lít", " VND/L"),
                                 color = TextSecondaryDark,
-                                fontSize = 16.sp,
+                                fontSize = 14.sp,
+                                fontWeight = FontWeight.Medium,
                                 maxLines = 1,
                                 softWrap = false,
-                                modifier = Modifier.padding(bottom = 5.dp, start = 4.dp)
+                                modifier = Modifier.padding(bottom = 5.dp, start = 3.dp)
                             )
                         }
 
-                        Spacer(modifier = Modifier.height(6.dp))
-
                         DeltaPriceBadge(delta = heroItem.delta, percent = deltaPercent)
-
-                        Spacer(modifier = Modifier.height(8.dp))
-
-                        val unitShort = tr("đ/lít", "VND/L")
-                        val prevLabel = tr("Kỳ trước", "Prev")
-                        val zLabel = tr("Vùng", "Zone")
-                        Text(
-                            text = "$prevLabel: ${currencyFormat.format(previousPrice)}\u00A0$unitShort  •  $zLabel ${if (selectedZone == 1) "2: " + currencyFormat.format(heroItem.zone2Price) else "1: " + currencyFormat.format(heroItem.zone1Price)}\u00A0$unitShort",
-                            color = TextSecondaryDark,
-                            fontSize = 11.5.sp,
-                            maxLines = 1,
-                            softWrap = false,
-                            overflow = TextOverflow.Ellipsis
-                        )
                     }
+
+                    Spacer(modifier = Modifier.height(8.dp))
+
+                    // Hàng 3: So sánh kỳ trước & vùng còn lại
+                    val unitShort = tr("đ/lít", "VND/L")
+                    val prevLabel = tr("Kỳ trước", "Prev")
+                    val zLabel = tr("Vùng", "Zone")
+                    Text(
+                        text = "$prevLabel: ${currencyFormat.format(previousPrice)}\u00A0$unitShort  •  $zLabel ${if (selectedZone == 1) "2: " + currencyFormat.format(heroItem.zone2Price) else "1: " + currencyFormat.format(heroItem.zone1Price)}\u00A0$unitShort",
+                        color = TextSecondaryDark,
+                        fontSize = 11.5.sp,
+                        maxLines = 1,
+                        softWrap = false,
+                        overflow = TextOverflow.Ellipsis
+                    )
                 }
             }
         }
 
-        // 3. Bento Grid các mặt hàng khác (E5, Diesel...) với dải màu Cò Bơm
+        // 3. Bento Grid các mặt hàng khác (E5 RON 92-II, Dầu DO...)
         item {
             val otherItems = data.items.filter { !it.isFeatured }
             val chunks = otherItems.chunked(2)
-            Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
+            Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
                 for (chunk in chunks) {
                     if (chunk.size == 2) {
                         Row(
                             modifier = Modifier.fillMaxWidth(),
-                            horizontalArrangement = Arrangement.spacedBy(12.dp)
+                            horizontalArrangement = Arrangement.spacedBy(10.dp)
                         ) {
                             for (item in chunk) {
                                 FuelBentoCard(
@@ -1194,11 +1191,11 @@ private fun getNextAdjustmentCountdownText(lang: AppLang): String {
         val m = (target.get(Calendar.MONTH) + 1).toString().padStart(2, '0')
 
         if (days == 0 && hours <= 6) {
-            if (lang == AppLang.EN) "🔥 Next adj: Today 15:00" else "🔥 Kỳ mới: 15:00 hôm nay!"
+            if (lang == AppLang.EN) "🔥 Next: Today 15:00" else "🔥 Kỳ mới: 15:00 hôm nay"
         } else if (days == 0) {
-            if (lang == AppLang.EN) "⏳ Next adj: ${hours}h left" else "⏳ Kỳ tới: còn ${hours}h nữa"
+            if (lang == AppLang.EN) "⏳ Next: ${hours}h left" else "⏳ Kỳ tới: còn ${hours}h"
         } else {
-            if (lang == AppLang.EN) "⏳ Next ($d/$m): ${days}d ${hours}h" else "⏳ Kỳ tới ($d/$m): còn ${days}ng ${hours}h"
+            if (lang == AppLang.EN) "⏳ Next ($d/$m): ${days}d ${hours}h" else "⏳ Kỳ tới ($d/$m): ${days}ng ${hours}h"
         }
     } catch (_: Exception) {
         if (lang == AppLang.EN) "⏳ Every Thu 15:00" else "⏳ Đổi giá: 15:00 Thứ 5"
@@ -1226,68 +1223,56 @@ fun FuelBentoCard(
         border = androidx.compose.foundation.BorderStroke(
             1.dp,
             Brush.linearGradient(
-                listOf(accent.copy(alpha = 0.45f), DarkSurfaceVariant.copy(alpha = 0.4f))
+                listOf(accent.copy(alpha = 0.40f), DarkSurfaceVariant.copy(alpha = 0.45f))
             )
         )
     ) {
-        Box(
+        Column(
             modifier = Modifier
                 .fillMaxWidth()
                 .background(
                     Brush.linearGradient(
-                        listOf(accent.copy(alpha = 0.08f), Color.Transparent)
+                        listOf(accent.copy(alpha = 0.07f), Color.Transparent)
                     )
                 )
+                .padding(horizontal = 13.dp, vertical = 12.dp)
         ) {
-            // Dải màu nhận diện Cò Bơm Xăng bên trái
-            Box(
-                modifier = Modifier
-                    .align(Alignment.CenterStart)
-                    .width(4.dp)
-                    .height(56.dp)
-                    .clip(RoundedCornerShape(topEnd = 4.dp, bottomEnd = 4.dp))
-                    .background(accent)
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Box(
+                    modifier = Modifier
+                        .size(7.dp)
+                        .clip(CircleShape)
+                        .background(accent)
+                )
+                Spacer(modifier = Modifier.width(6.dp))
+                Text(
+                    text = translateFuelName(item.name, lang, compact = true),
+                    color = TextSecondaryDark,
+                    fontSize = 12.5.sp,
+                    fontWeight = FontWeight.SemiBold,
+                    maxLines = 1,
+                    softWrap = false,
+                    overflow = TextOverflow.Ellipsis
+                )
+            }
+
+            Spacer(modifier = Modifier.height(6.dp))
+
+            Text(
+                text = "${currencyFormat.format(animatedPrice)} đ",
+                color = TextPrimaryDark,
+                fontSize = 19.sp,
+                fontWeight = FontWeight.ExtraBold,
+                maxLines = 1,
+                softWrap = false
             )
 
-            Column(modifier = Modifier.padding(start = 15.dp, end = 12.dp, top = 13.dp, bottom = 13.dp)) {
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.SpaceBetween,
-                    verticalAlignment = Alignment.CenterVertically
-                ) {
-                    Text(
-                        text = translateFuelName(item.name, lang),
-                        color = TextSecondaryDark,
-                        fontSize = 12.5.sp,
-                        fontWeight = FontWeight.SemiBold,
-                        maxLines = 1,
-                        overflow = TextOverflow.Ellipsis,
-                        modifier = Modifier.weight(1f, fill = false)
-                    )
-                    Spacer(modifier = Modifier.width(4.dp))
-                    Box(
-                        modifier = Modifier
-                            .size(7.dp)
-                            .clip(CircleShape)
-                            .background(accent)
-                    )
-                }
+            Spacer(modifier = Modifier.height(6.dp))
 
-                Spacer(modifier = Modifier.height(7.dp))
-
-                Text(
-                    text = "${currencyFormat.format(animatedPrice)} đ",
-                    color = TextPrimaryDark,
-                    fontSize = 19.sp,
-                    fontWeight = FontWeight.ExtraBold,
-                    maxLines = 1,
-                    softWrap = false
-                )
-
-                Spacer(modifier = Modifier.height(6.dp))
-
-                DeltaPriceBadge(delta = item.delta, isCompact = true)
-            }
+            DeltaPriceBadge(delta = item.delta, isCompact = true)
         }
     }
 }
@@ -1313,61 +1298,56 @@ fun FuelWideCard(
         border = androidx.compose.foundation.BorderStroke(
             1.dp,
             Brush.linearGradient(
-                listOf(accent.copy(alpha = 0.45f), DarkSurfaceVariant.copy(alpha = 0.4f))
+                listOf(accent.copy(alpha = 0.40f), DarkSurfaceVariant.copy(alpha = 0.45f))
             )
         )
     ) {
-        Box(
+        Row(
             modifier = Modifier
                 .fillMaxWidth()
                 .background(
                     Brush.linearGradient(
-                        listOf(accent.copy(alpha = 0.08f), Color.Transparent)
+                        listOf(accent.copy(alpha = 0.07f), Color.Transparent)
                     )
                 )
+                .padding(horizontal = 14.dp, vertical = 12.dp),
+            horizontalArrangement = Arrangement.SpaceBetween,
+            verticalAlignment = Alignment.CenterVertically
         ) {
-            Box(
-                modifier = Modifier
-                    .align(Alignment.CenterStart)
-                    .width(4.dp)
-                    .height(44.dp)
-                    .clip(RoundedCornerShape(topEnd = 4.dp, bottomEnd = 4.dp))
-                    .background(accent)
-            )
+            Row(
+                verticalAlignment = Alignment.CenterVertically,
+                modifier = Modifier.weight(1f)
+            ) {
+                Box(
+                    modifier = Modifier
+                        .size(7.dp)
+                        .clip(CircleShape)
+                        .background(accent)
+                )
+                Spacer(modifier = Modifier.width(7.dp))
+                Text(
+                    text = translateFuelName(item.name, lang, compact = true),
+                    color = TextSecondaryDark,
+                    fontSize = 13.sp,
+                    fontWeight = FontWeight.SemiBold,
+                    maxLines = 1,
+                    softWrap = false,
+                    overflow = TextOverflow.Ellipsis
+                )
+            }
 
             Row(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(start = 16.dp, end = 16.dp, top = 14.dp, bottom = 14.dp),
-                horizontalArrangement = Arrangement.SpaceBetween,
-                verticalAlignment = Alignment.CenterVertically
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(8.dp)
             ) {
-                Column(modifier = Modifier.weight(1f)) {
-                    Row(verticalAlignment = Alignment.CenterVertically) {
-                        Box(
-                            modifier = Modifier
-                                .size(7.dp)
-                                .clip(CircleShape)
-                                .background(accent)
-                        )
-                        Spacer(modifier = Modifier.width(6.dp))
-                        Text(
-                            text = translateFuelName(item.name, lang),
-                            color = TextSecondaryDark,
-                            fontSize = 13.sp,
-                            fontWeight = FontWeight.SemiBold,
-                            maxLines = 1
-                        )
-                    }
-                    Spacer(modifier = Modifier.height(4.dp))
-                    DeltaPriceBadge(delta = item.delta, isCompact = true)
-                }
-
+                DeltaPriceBadge(delta = item.delta, isCompact = true)
                 Text(
-                    text = "${currencyFormat.format(animatedPrice)} ${tr("đ/lít", "VND/L")}",
+                    text = "${currencyFormat.format(animatedPrice)} đ",
                     color = TextPrimaryDark,
                     fontSize = 18.sp,
-                    fontWeight = FontWeight.ExtraBold
+                    fontWeight = FontWeight.ExtraBold,
+                    maxLines = 1,
+                    softWrap = false
                 )
             }
         }
@@ -1913,4 +1893,18 @@ fun formatIsoDateTime(raw: String): String {
     val m = Regex("""^(\d{4})-(\d{2})-(\d{2})T(\d{2}):(\d{2})""").find(raw) ?: return raw
     val (y, mo, d, h, mi) = m.destructured
     return "$d/$mo/$y $h:$mi"
+}
+
+fun formatCompactDateTime(raw: String): String {
+    val iso = Regex("""^(\d{4})-(\d{2})-(\d{2})T(\d{2}):(\d{2})""").find(raw)
+    if (iso != null) {
+        val (_, mo, d, h, mi) = iso.destructured
+        return "$d/$mo • $h:$mi"
+    }
+    val vn = Regex("""^(\d{2})/(\d{2})/\d{4}\s+(\d{2}:\d{2})""").find(raw)
+    if (vn != null) {
+        val (d, mo, hm) = vn.destructured
+        return "$d/$mo • $hm"
+    }
+    return raw
 }
