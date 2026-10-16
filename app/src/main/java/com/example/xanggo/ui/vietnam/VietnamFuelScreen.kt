@@ -8,6 +8,7 @@ import androidx.compose.animation.core.FastOutSlowInEasing
 import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.animateIntAsState
 import androidx.compose.animation.core.tween
+import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
@@ -22,8 +23,12 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.Path
+import androidx.compose.ui.graphics.StrokeCap
+import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.hapticfeedback.HapticFeedbackType
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalHapticFeedback
@@ -59,22 +64,26 @@ import kotlin.math.roundToInt
 private fun getFuelNozzleAccentColor(item: FuelItem): Color {
     val key = (item.id + " " + item.name).lowercase()
     return when {
-        key.contains("95-v") || key.contains("95v") -> Color(0xFFEF4444) // Đỏ cam cao cấp RON 95-V
-        key.contains("95") -> Color(0xFFF97316) // Cam đặc trưng RON 95-III
-        key.contains("e5") || key.contains("92") -> Color(0xFF10B981) // Xanh lá sinh học E5 RON 92
-        key.contains("do") || key.contains("diesel") -> Color(0xFF0EA5E9) // Xanh dương công nghiệp Diesel DO
-        else -> Color(0xFFF59E0B) // Vàng hổ phách Dầu hỏa
+        key.contains("95-v") || key.contains("95v") -> Color(0xFFEF4444)
+        key.contains("95") -> Color(0xFFF97316)
+        key.contains("e5") || key.contains("92") -> Color(0xFF10B981)
+        key.contains("001s") -> Color(0xFF38BDF8)
+        key.contains("do") || key.contains("diesel") -> Color(0xFF0EA5E9)
+        else -> Color(0xFFF59E0B)
     }
 }
 
-private fun getFuelNozzleBadgeText(item: FuelItem, lang: AppLang): String {
-    val key = (item.id + " " + item.name).lowercase()
+/** Tên siêu gọn cho dải 3 cột ngang (Không bao giờ bị cắt chữ) */
+private fun shortFuelStripTitle(rawName: String, lang: AppLang): String {
+    val low = rawName.lowercase()
     return when {
-        key.contains("95-v") || key.contains("95v") -> "EURO 5"
-        key.contains("95") -> if (lang == AppLang.EN) "POPULAR" else "PHỔ BIẾN"
-        key.contains("e5") || key.contains("92") -> "BIO E5"
-        key.contains("do") || key.contains("diesel") -> "DIESEL"
-        else -> "KEROSENE"
+        low.contains("e5") || low.contains("92") -> "E5 RON 92"
+        low.contains("0.001s") || low.contains("0,001s") -> "DO 0.001S-V"
+        low.contains("0.05s") || low.contains("0,05s") -> "DO 0.05S-II"
+        low.contains("95-v") -> "RON 95-V"
+        low.contains("95") -> "RON 95-III"
+        low.contains("hỏa") -> if (lang == AppLang.EN) "Kerosene" else "Dầu hỏa"
+        else -> translateFuelName(rawName, lang, compact = true)
     }
 }
 
@@ -88,16 +97,16 @@ data class VehiclePreset(
 )
 
 private val VEHICLE_PRESETS = listOf(
-    VehiclePreset("vision", "Honda Vision", "Honda Vision", "🛵", 4.9, "95"),
+    VehiclePreset("vision", "Vision", "Vision", "🛵", 4.9, "95"),
     VehiclePreset("airblade", "AirBlade", "AirBlade", "🛵", 4.4, "95"),
-    VehiclePreset("wave", "Wave Alpha", "Wave Alpha", "🛵", 3.7, "95"),
-    VehiclePreset("lead", "Honda Lead", "Honda Lead", "🛵", 6.0, "95"),
-    VehiclePreset("vario", "Vario / Click", "Vario / Click", "🛵", 5.5, "95"),
-    VehiclePreset("sh", "Honda SH", "Honda SH", "🛵", 7.0, "95"),
-    VehiclePreset("exciter", "Exciter / Winner", "Exciter / Winner", "🏍️", 5.0, "95"),
-    VehiclePreset("sedan", "Ô tô 5 chỗ", "Sedan (45L)", "🚗", 45.0, "95"),
-    VehiclePreset("suv", "SUV / MPV 7 chỗ", "SUV / MPV (58L)", "🚙", 58.0, "95"),
-    VehiclePreset("pickup", "Bán tải Diesel", "Pickup Diesel", "🛻", 76.0, "do")
+    VehiclePreset("wave", "Wave", "Wave", "🛵", 3.7, "95"),
+    VehiclePreset("lead", "Lead", "Lead", "🛵", 6.0, "95"),
+    VehiclePreset("vario", "Vario", "Vario", "🛵", 5.5, "95"),
+    VehiclePreset("sh", "SH", "SH", "🛵", 7.0, "95"),
+    VehiclePreset("exciter", "Exciter", "Exciter", "🏍️", 5.0, "95"),
+    VehiclePreset("sedan", "Ô tô 5 chỗ", "Sedan", "🚗", 45.0, "95"),
+    VehiclePreset("suv", "SUV 7 chỗ", "SUV 7-seat", "🚙", 58.0, "95"),
+    VehiclePreset("pickup", "Bán tải", "Pickup", "🛻", 76.0, "do")
 )
 
 private val MONEY_PRESETS = listOf(30_000, 50_000, 70_000, 100_000, 200_000, 500_000, 1_000_000)
@@ -120,7 +129,6 @@ fun VietnamFuelScreen(
     var selectedVehicleIdx by remember { mutableIntStateOf(prefs.getInt("selected_vehicle_idx", 0).coerceIn(0, VEHICLE_PRESETS.lastIndex)) }
     val currentVehicle = VEHICLE_PRESETS.getOrElse(selectedVehicleIdx) { VEHICLE_PRESETS.first() }
 
-    // Cho phép người dùng tự chỉnh số lít (+/- 0.5L) và chọn loại xăng (RON 95 / E5 / DO)
     var customLiters by remember(selectedVehicleIdx) { mutableDoubleStateOf(currentVehicle.tankLiters) }
     var selectedFuelKeyword by remember(selectedVehicleIdx) { mutableStateOf(currentVehicle.defaultFuelKeyword) }
 
@@ -128,7 +136,6 @@ fun VietnamFuelScreen(
     var previewCard by remember { mutableStateOf<ShareCardPreviewData?>(null) }
     val currencyFormat = remember { NumberFormat.getNumberInstance(Locale.GERMANY) }
 
-    // Tự động đồng bộ dữ liệu ra Widget màn hình chính
     LaunchedEffect(data, selectedZone) {
         XangGoWidgetProvider.saveAndRefreshWidget(context, data, selectedZone)
     }
@@ -180,9 +187,9 @@ fun VietnamFuelScreen(
             .fillMaxSize()
             .background(DarkBackground)
             .padding(horizontal = 16.dp),
-        verticalArrangement = Arrangement.spacedBy(10.dp)
+        verticalArrangement = Arrangement.spacedBy(12.dp)
     ) {
-        // 1. Header: Logo & Chế độ Ngoài trời (☀️/🌙) + Ngôn ngữ VI/EN + Chọn Vùng (Không bị cắt chữ)
+        // 1. HEADER TỐI GIẢN 1 HÀNG DUY NHẤT (Không còn dòng chữ nhỏ rườm rà phía dưới)
         item {
             Spacer(modifier = Modifier.height(4.dp))
             Row(
@@ -200,12 +207,12 @@ fun VietnamFuelScreen(
                     ) {
                         Text(text = "⛽", fontSize = 17.sp)
                     }
-                    Spacer(modifier = Modifier.width(7.dp))
+                    Spacer(modifier = Modifier.width(8.dp))
                     Row(verticalAlignment = Alignment.CenterVertically) {
                         Text(
                             text = "Giá Xăng ",
                             color = TextPrimaryDark,
-                            fontSize = 18.sp,
+                            fontSize = 18.5.sp,
                             fontWeight = FontWeight.ExtraBold,
                             maxLines = 1,
                             softWrap = false
@@ -213,7 +220,7 @@ fun VietnamFuelScreen(
                         Text(
                             text = "24h",
                             color = PetrolTeal,
-                            fontSize = 18.sp,
+                            fontSize = 18.5.sp,
                             fontWeight = FontWeight.ExtraBold,
                             maxLines = 1,
                             softWrap = false
@@ -225,7 +232,6 @@ fun VietnamFuelScreen(
                     verticalAlignment = Alignment.CenterVertically,
                     horizontalArrangement = Arrangement.spacedBy(5.dp)
                 ) {
-                    // Nút 1 chạm Đổi Giao diện Ngoài trời (☀️ Sáng rõ dưới nắng) / Ban đêm (🌙 AMOLED)
                     Surface(
                         color = DarkSurface,
                         shape = RoundedCornerShape(16.dp),
@@ -244,7 +250,6 @@ fun VietnamFuelScreen(
                         )
                     }
 
-                    // Nút chuyển ngôn ngữ nhanh VI / EN
                     Surface(
                         color = DarkSurface,
                         shape = RoundedCornerShape(16.dp),
@@ -262,82 +267,30 @@ fun VietnamFuelScreen(
                         )
                     }
 
-                    // Nút chọn Vùng 1 / Vùng 2 (Hiển thị trọn vẹn không bị cắt "...")
                     Surface(
-                        color = PetrolTeal.copy(alpha = 0.12f),
+                        color = PetrolTeal.copy(alpha = 0.14f),
                         shape = RoundedCornerShape(18.dp),
-                        border = androidx.compose.foundation.BorderStroke(1.dp, PetrolTeal.copy(alpha = 0.5f)),
+                        border = androidx.compose.foundation.BorderStroke(1.dp, PetrolTeal.copy(alpha = 0.55f)),
                         modifier = Modifier.clickable {
                             haptic.performHapticFeedback(HapticFeedbackType.TextHandleMove)
                             showZoneDialog = true
                         }
                     ) {
-                        Row(
-                            modifier = Modifier.padding(horizontal = 9.dp, vertical = 5.dp),
-                            verticalAlignment = Alignment.CenterVertically
-                        ) {
-                            Text(
-                                text = "📍 $headerZoneLabel ›",
-                                color = PetrolTeal,
-                                fontWeight = FontWeight.Bold,
-                                fontSize = 11.sp,
-                                maxLines = 1,
-                                softWrap = false
-                            )
-                        }
-                    }
-                }
-            }
-
-            // Dòng 2: Chip [🕒 Giờ cập nhật + ↻ Làm mới] bên trái & [⏳ Đếm ngược kỳ tới] bên phải
-            Row(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(top = 6.dp),
-                horizontalArrangement = Arrangement.SpaceBetween,
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                Surface(
-                    color = DarkSurface,
-                    shape = RoundedCornerShape(10.dp),
-                    border = androidx.compose.foundation.BorderStroke(1.dp, DarkSurfaceVariant.copy(alpha = 0.8f)),
-                    modifier = Modifier.clickable { onRefresh() }
-                ) {
-                    Row(
-                        modifier = Modifier.padding(horizontal = 8.dp, vertical = 3.dp),
-                        verticalAlignment = Alignment.CenterVertically
-                    ) {
                         Text(
-                            text = "🕒 ${formatCompactDateTime(data.updatedAt)}",
-                            color = TextSecondaryDark,
-                            fontSize = 11.sp,
-                            maxLines = 1,
-                            softWrap = false
-                        )
-                        Spacer(modifier = Modifier.width(6.dp))
-                        Text(
-                            text = tr("↻ Làm mới", "↻ Sync"),
+                            text = "📍 $headerZoneLabel ›",
                             color = PetrolTeal,
-                            fontSize = 11.sp,
                             fontWeight = FontWeight.Bold,
+                            fontSize = 11.sp,
                             maxLines = 1,
-                            softWrap = false
+                            softWrap = false,
+                            modifier = Modifier.padding(horizontal = 9.dp, vertical = 5.dp)
                         )
                     }
                 }
-
-                Text(
-                    text = getNextAdjustmentCountdownText(lang),
-                    color = EnergyAmber,
-                    fontSize = 11.sp,
-                    fontWeight = FontWeight.SemiBold,
-                    maxLines = 1,
-                    softWrap = false
-                )
             }
         }
 
-        // 2. Hero Card: Xăng RON 95-III (Gọn gàng, không bị giãn chiều cao, không bị cắt tên xăng)
+        // 2. TÂM ĐIỂM THỊ GIÁC SỐ 1: HERO SPOTLIGHT CARD (Nền Gradient Ngọc Lục Bảo + Đồ họa sóng Sparkline)
         item {
             val heroItem = data.items.firstOrNull { it.isFeatured } ?: data.items.first()
             val targetPrice = heroItem.getPrice(selectedZone)
@@ -348,176 +301,244 @@ fun VietnamFuelScreen(
             )
             val previousPrice = targetPrice - heroItem.delta
             val deltaPercent = if (previousPrice > 0) (heroItem.delta.toDouble() / previousPrice) * 100 else 0.0
-            val heroAccent = getFuelNozzleAccentColor(heroItem)
+            val sparklinePrices = remember(data.history, targetPrice) {
+                val list = data.history.map { it.ron95Price }.filter { it > 0 }.toMutableList()
+                if (list.size < 2) {
+                    listOf(previousPrice.coerceAtLeast(20000), targetPrice)
+                } else {
+                    list[list.lastIndex] = targetPrice
+                    list
+                }
+            }
+
+            val isLight = ThemeState.isLightMode
+            val heroGradient = if (isLight) {
+                Brush.linearGradient(
+                    colors = listOf(
+                        Color(0xFFCCFBF1),
+                        Color(0xFFE0F2FE),
+                        Color(0xFFFFFFFF)
+                    ),
+                    start = Offset(0f, 0f),
+                    end = Offset(900f, 500f)
+                )
+            } else {
+                Brush.linearGradient(
+                    colors = listOf(
+                        Color(0xFF0F3D3E),
+                        Color(0xFF0A2636),
+                        Color(0xFF0B1528)
+                    ),
+                    start = Offset(0f, 0f),
+                    end = Offset(900f, 500f)
+                )
+            }
 
             Card(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .clip(RoundedCornerShape(20.dp)),
-                colors = CardDefaults.cardColors(containerColor = DarkSurface),
+                    .clip(RoundedCornerShape(22.dp)),
+                colors = CardDefaults.cardColors(containerColor = Color.Transparent),
                 border = androidx.compose.foundation.BorderStroke(
-                    1.2.dp,
+                    1.5.dp,
                     Brush.linearGradient(
                         listOf(
-                            heroAccent.copy(alpha = 0.55f),
-                            PetrolTeal.copy(alpha = 0.45f)
+                            PetrolTeal.copy(alpha = 0.85f),
+                            EnergyAmber.copy(alpha = 0.55f),
+                            PetrolTeal.copy(alpha = 0.35f)
                         )
                     )
                 ),
-                elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
+                elevation = CardDefaults.cardElevation(defaultElevation = 4.dp)
             ) {
-                Column(
+                Box(
                     modifier = Modifier
                         .fillMaxWidth()
-                        .background(
-                            Brush.linearGradient(
-                                listOf(
-                                    heroAccent.copy(alpha = 0.09f),
-                                    Color.Transparent,
-                                    PetrolTeal.copy(alpha = 0.06f)
+                        .background(heroGradient)
+                ) {
+                    // Quầng sáng Radial Glow tạo chiều sâu 3D ở góc phải
+                    Box(
+                        modifier = Modifier
+                            .size(180.dp)
+                            .align(Alignment.TopEnd)
+                            .background(
+                                Brush.radialGradient(
+                                    colors = listOf(
+                                        PetrolTeal.copy(alpha = if (isLight) 0.18f else 0.22f),
+                                        Color.Transparent
+                                    )
                                 )
                             )
-                        )
-                        .padding(horizontal = 16.dp, vertical = 14.dp)
-                ) {
-                    // Hàng 1: Tên xăng đầy đủ (Xăng RON 95-III) + Nút Gửi ảnh
-                    Row(
-                        modifier = Modifier.fillMaxWidth(),
-                        horizontalArrangement = Arrangement.SpaceBetween,
-                        verticalAlignment = Alignment.CenterVertically
+                    )
+
+                    Column(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(horizontal = 16.dp, vertical = 15.dp)
                     ) {
+                        // Hàng 1: Badge Tên Xăng Nổi Bật + Nút Gửi ảnh
                         Row(
-                            verticalAlignment = Alignment.CenterVertically,
-                            modifier = Modifier.weight(1f)
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.SpaceBetween,
+                            verticalAlignment = Alignment.CenterVertically
                         ) {
                             Surface(
-                                color = heroAccent.copy(alpha = 0.18f),
-                                shape = RoundedCornerShape(8.dp),
-                                border = androidx.compose.foundation.BorderStroke(0.8.dp, heroAccent.copy(alpha = 0.45f))
+                                color = Color(0xFFF97316).copy(alpha = if (isLight) 0.15f else 0.22f),
+                                shape = RoundedCornerShape(10.dp),
+                                border = androidx.compose.foundation.BorderStroke(
+                                    1.dp,
+                                    Color(0xFFF97316).copy(alpha = 0.55f)
+                                )
+                            ) {
+                                Row(
+                                    modifier = Modifier.padding(horizontal = 10.dp, vertical = 4.dp),
+                                    verticalAlignment = Alignment.CenterVertically
+                                ) {
+                                    Text(text = "🔥", fontSize = 12.sp)
+                                    Spacer(modifier = Modifier.width(5.dp))
+                                    Text(
+                                        text = translateFuelName(heroItem.name, lang, compact = false).uppercase(),
+                                        color = if (isLight) Color(0xFFC2410C) else Color(0xFFFB923C),
+                                        fontSize = 12.sp,
+                                        fontWeight = FontWeight.ExtraBold,
+                                        letterSpacing = 0.4.sp,
+                                        maxLines = 1,
+                                        softWrap = false
+                                    )
+                                }
+                            }
+
+                            Surface(
+                                color = PetrolTeal,
+                                shape = RoundedCornerShape(12.dp),
+                                modifier = Modifier.clickable { openSharePreview() }
                             ) {
                                 Text(
-                                    text = "⛽",
-                                    fontSize = 14.sp,
+                                    text = tr("📸 Gửi ảnh", "📸 Share"),
+                                    color = Color(0xFF042F2E),
+                                    fontSize = 11.5.sp,
+                                    fontWeight = FontWeight.ExtraBold,
                                     maxLines = 1,
                                     softWrap = false,
-                                    modifier = Modifier.padding(horizontal = 6.dp, vertical = 4.dp)
+                                    modifier = Modifier.padding(horizontal = 11.dp, vertical = 5.dp)
                                 )
                             }
-                            Spacer(modifier = Modifier.width(8.dp))
-                            Text(
-                                text = translateFuelName(heroItem.name, lang, compact = false),
-                                color = TextPrimaryDark,
-                                fontSize = 16.sp,
-                                fontWeight = FontWeight.Bold,
-                                maxLines = 1,
-                                softWrap = false,
-                                overflow = TextOverflow.Ellipsis
+                        }
+
+                        Spacer(modifier = Modifier.height(12.dp))
+
+                        // Hàng 2: Con số Giá Khổng Lồ (Trái) + Đồ họa Sóng Biểu Đồ Mini Sparkline (Phải)
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.SpaceBetween,
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            Column(modifier = Modifier.weight(1f)) {
+                                Row(verticalAlignment = Alignment.Bottom) {
+                                    Text(
+                                        text = currencyFormat.format(animatedHeroPrice),
+                                        color = TextPrimaryDark,
+                                        fontSize = 40.sp,
+                                        fontWeight = FontWeight.Black,
+                                        letterSpacing = (-0.8).sp,
+                                        maxLines = 1,
+                                        softWrap = false
+                                    )
+                                    Text(
+                                        text = tr(" đ/lít", " VND/L"),
+                                        color = TextSecondaryDark,
+                                        fontSize = 14.sp,
+                                        fontWeight = FontWeight.SemiBold,
+                                        maxLines = 1,
+                                        softWrap = false,
+                                        modifier = Modifier.padding(bottom = 6.dp, start = 4.dp)
+                                    )
+                                }
+
+                                Spacer(modifier = Modifier.height(6.dp))
+
+                                DeltaPriceBadge(delta = heroItem.delta, percent = deltaPercent)
+                            }
+
+                            Spacer(modifier = Modifier.width(10.dp))
+
+                            // Đồ họa Sóng Mini Sparkline 6 kỳ điều hành
+                            HeroMiniSparkline(
+                                prices = sparklinePrices,
+                                isRaise = heroItem.delta > 0,
+                                modifier = Modifier
+                                    .width(108.dp)
+                                    .height(62.dp)
                             )
                         }
 
-                        Spacer(modifier = Modifier.width(8.dp))
+                        Spacer(modifier = Modifier.height(12.dp))
 
-                        // Nút Xem & Gửi ảnh bảng giá 1 chạm
-                        Surface(
-                            color = PetrolTeal.copy(alpha = 0.16f),
-                            shape = RoundedCornerShape(14.dp),
-                            border = androidx.compose.foundation.BorderStroke(1.dp, PetrolTeal.copy(alpha = 0.5f)),
-                            modifier = Modifier.clickable { openSharePreview() }
+                        HorizontalDivider(color = TextSecondaryDark.copy(alpha = 0.16f))
+
+                        Spacer(modifier = Modifier.height(8.dp))
+
+                        // Hàng 3: Chân thẻ gọn gàng (Kỳ trước + Kỳ tới + Nút ↻ ngày cập nhật)
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.SpaceBetween,
+                            verticalAlignment = Alignment.CenterVertically
                         ) {
                             Text(
-                                text = tr("📸 Gửi ảnh", "📸 Share"),
-                                color = PetrolTeal,
-                                fontSize = 11.5.sp,
-                                fontWeight = FontWeight.Bold,
-                                maxLines = 1,
-                                softWrap = false,
-                                modifier = Modifier.padding(horizontal = 10.dp, vertical = 5.dp)
-                            )
-                        }
-                    }
-
-                    Spacer(modifier = Modifier.height(10.dp))
-
-                    // Hàng 2: Giá tiền nổi bật + Huy hiệu biến động nằm cùng hàng cân đối
-                    Row(
-                        modifier = Modifier.fillMaxWidth(),
-                        horizontalArrangement = Arrangement.SpaceBetween,
-                        verticalAlignment = Alignment.CenterVertically
-                    ) {
-                        Row(verticalAlignment = Alignment.Bottom) {
-                            Text(
-                                text = currencyFormat.format(animatedHeroPrice),
-                                color = TextPrimaryDark,
-                                fontSize = 34.sp,
-                                fontWeight = FontWeight.ExtraBold,
-                                maxLines = 1,
-                                softWrap = false
-                            )
-                            Text(
-                                text = tr(" đ/lít", " VND/L"),
+                                text = "${tr("Kỳ trước", "Prev")}: ${currencyFormat.format(previousPrice)}đ  •  ${getNextAdjustmentCountdownText(lang)}",
                                 color = TextSecondaryDark,
-                                fontSize = 14.sp,
+                                fontSize = 11.sp,
                                 fontWeight = FontWeight.Medium,
                                 maxLines = 1,
                                 softWrap = false,
-                                modifier = Modifier.padding(bottom = 5.dp, start = 3.dp)
+                                overflow = TextOverflow.Ellipsis,
+                                modifier = Modifier.weight(1f)
                             )
+
+                            Spacer(modifier = Modifier.width(6.dp))
+
+                            Surface(
+                                color = PetrolTeal.copy(alpha = 0.15f),
+                                shape = RoundedCornerShape(8.dp),
+                                modifier = Modifier.clickable { onRefresh() }
+                            ) {
+                                Text(
+                                    text = "↻ ${formatShortDayMonth(data.updatedAt)}",
+                                    color = PetrolTeal,
+                                    fontSize = 10.5.sp,
+                                    fontWeight = FontWeight.Bold,
+                                    maxLines = 1,
+                                    softWrap = false,
+                                    modifier = Modifier.padding(horizontal = 7.dp, vertical = 2.dp)
+                                )
+                            }
                         }
-
-                        DeltaPriceBadge(delta = heroItem.delta, percent = deltaPercent)
                     }
-
-                    Spacer(modifier = Modifier.height(8.dp))
-
-                    // Hàng 3: So sánh kỳ trước & vùng còn lại
-                    val unitShort = tr("đ/lít", "VND/L")
-                    val prevLabel = tr("Kỳ trước", "Prev")
-                    val zLabel = tr("Vùng", "Zone")
-                    Text(
-                        text = "$prevLabel: ${currencyFormat.format(previousPrice)}\u00A0$unitShort  •  $zLabel ${if (selectedZone == 1) "2: " + currencyFormat.format(heroItem.zone2Price) else "1: " + currencyFormat.format(heroItem.zone1Price)}\u00A0$unitShort",
-                        color = TextSecondaryDark,
-                        fontSize = 11.5.sp,
-                        maxLines = 1,
-                        softWrap = false,
-                        overflow = TextOverflow.Ellipsis
-                    )
                 }
             }
         }
 
-        // 3. Bento Grid các mặt hàng khác (E5 RON 92-II, Dầu DO...)
+        // 3. DẢI 3 CỘT NGANG SIÊU GỌN (E5 RON 92 | DO 0.05S-II | DO 0.001S-V nằm trên CÙNG 1 HÀNG)
         item {
-            val otherItems = data.items.filter { !it.isFeatured }
-            val chunks = otherItems.chunked(2)
-            Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
-                for (chunk in chunks) {
-                    if (chunk.size == 2) {
-                        Row(
-                            modifier = Modifier.fillMaxWidth(),
-                            horizontalArrangement = Arrangement.spacedBy(10.dp)
-                        ) {
-                            for (item in chunk) {
-                                FuelBentoCard(
-                                    item = item,
-                                    zone = selectedZone,
-                                    currencyFormat = currencyFormat,
-                                    modifier = Modifier.weight(1f)
-                                )
-                            }
-                        }
-                    } else {
-                        FuelWideCard(
-                            item = chunk[0],
+            val otherItems = data.items.filter { !it.isFeatured }.take(3)
+            if (otherItems.isNotEmpty()) {
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.spacedBy(8.dp)
+                ) {
+                    otherItems.forEach { item ->
+                        FuelCompactStripCard(
+                            item = item,
                             zone = selectedZone,
                             currencyFormat = currencyFormat,
-                            modifier = Modifier.fillMaxWidth()
+                            modifier = Modifier.weight(1f)
                         )
                     }
                 }
             }
         }
 
-        // 4. MÁY TÍNH ĐỔ XĂNG 2 TRONG 1 CHO NGƯỜI VIỆT (Đầy bình theo xe & Đổ theo mệnh giá tiền 50k/100k)
+        // 4. MÁY TÍNH ĐỔ XĂNG TỐI GIẢN (Ít chữ, tập trung vào Con số & Nút bấm)
         item {
             FullTankCalculatorCard(
                 presets = VEHICLE_PRESETS,
@@ -693,6 +714,166 @@ fun VietnamFuelScreen(
     }
 }
 
+/** Đồ họa sóng Sparkline tạo điểm nhấn thị giác ngay trong thẻ Hero */
+@Composable
+fun HeroMiniSparkline(
+    prices: List<Int>,
+    isRaise: Boolean,
+    modifier: Modifier = Modifier
+) {
+    val lineColor = if (isRaise) Color(0xFFFB923C) else Color(0xFF2DD4BF)
+    val lang = LocalAppLanguage.current
+
+    Column(
+        modifier = modifier,
+        horizontalAlignment = Alignment.End,
+        verticalArrangement = Arrangement.Center
+    ) {
+        Canvas(
+            modifier = Modifier
+                .fillMaxWidth()
+                .height(44.dp)
+        ) {
+            if (prices.size < 2) return@Canvas
+            val minP = prices.minOrNull()?.toFloat() ?: 0f
+            val maxP = prices.maxOrNull()?.toFloat() ?: 1f
+            val range = (maxP - minP).coerceAtLeast(100f)
+
+            val padX = 6.dp.toPx()
+            val padY = 6.dp.toPx()
+            val w = size.width - padX * 2
+            val h = size.height - padY * 2
+
+            val pts = prices.mapIndexed { idx, p ->
+                val x = padX + (idx.toFloat() / (prices.size - 1)) * w
+                val y = padY + h - ((p - minP) / range) * h
+                Offset(x, y)
+            }
+
+            val strokePath = Path().apply {
+                moveTo(pts.first().x, pts.first().y)
+                for (i in 0 until pts.size - 1) {
+                    val p0 = pts[i]
+                    val p1 = pts[i + 1]
+                    val cx = (p0.x + p1.x) / 2f
+                    cubicTo(cx, p0.y, cx, p1.y, p1.x, p1.y)
+                }
+            }
+
+            val fillPath = Path().apply {
+                addPath(strokePath)
+                lineTo(pts.last().x, size.height)
+                lineTo(pts.first().x, size.height)
+                close()
+            }
+
+            drawPath(
+                path = fillPath,
+                brush = Brush.verticalGradient(
+                    listOf(lineColor.copy(alpha = 0.32f), Color.Transparent)
+                )
+            )
+
+            drawPath(
+                path = strokePath,
+                color = lineColor,
+                style = Stroke(width = 2.6.dp.toPx(), cap = StrokeCap.Round)
+            )
+
+            val last = pts.last()
+            drawCircle(
+                color = lineColor.copy(alpha = 0.35f),
+                radius = 7.dp.toPx(),
+                center = last
+            )
+            drawCircle(
+                color = lineColor,
+                radius = 3.8.dp.toPx(),
+                center = last
+            )
+        }
+        Spacer(modifier = Modifier.height(2.dp))
+        Text(
+            text = if (lang == AppLang.EN) "6-period trend" else "Xu hướng 6 kỳ",
+            color = TextSecondaryDark.copy(alpha = 0.8f),
+            fontSize = 9.5.sp,
+            maxLines = 1,
+            softWrap = false
+        )
+    }
+}
+
+/** Thẻ dọc siêu gọn cho dải 3 cột ngang (E5 RON 92 | DO 0.05S-II | DO 0.001S-V) */
+@Composable
+fun FuelCompactStripCard(
+    item: FuelItem,
+    zone: Int,
+    currencyFormat: NumberFormat,
+    modifier: Modifier = Modifier
+) {
+    val lang = LocalAppLanguage.current
+    val accent = getFuelNozzleAccentColor(item)
+    val animatedPrice by animateIntAsState(
+        targetValue = item.getPrice(zone),
+        animationSpec = tween(durationMillis = 400, easing = FastOutSlowInEasing),
+        label = "strip_price_counter"
+    )
+
+    Card(
+        modifier = modifier.clip(RoundedCornerShape(16.dp)),
+        colors = CardDefaults.cardColors(containerColor = DarkSurface),
+        border = androidx.compose.foundation.BorderStroke(
+            1.dp,
+            accent.copy(alpha = 0.32f)
+        )
+    ) {
+        Column(
+            modifier = Modifier
+                .fillMaxWidth()
+                .background(
+                    Brush.verticalGradient(
+                        listOf(accent.copy(alpha = 0.08f), Color.Transparent)
+                    )
+                )
+                .padding(horizontal = 10.dp, vertical = 10.dp)
+        ) {
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                Box(
+                    modifier = Modifier
+                        .size(6.dp)
+                        .clip(CircleShape)
+                        .background(accent)
+                )
+                Spacer(modifier = Modifier.width(5.dp))
+                Text(
+                    text = shortFuelStripTitle(item.name, lang),
+                    color = TextSecondaryDark,
+                    fontSize = 11.sp,
+                    fontWeight = FontWeight.Bold,
+                    maxLines = 1,
+                    softWrap = false,
+                    overflow = TextOverflow.Ellipsis
+                )
+            }
+
+            Spacer(modifier = Modifier.height(5.dp))
+
+            Text(
+                text = "${currencyFormat.format(animatedPrice)}đ",
+                color = TextPrimaryDark,
+                fontSize = 16.5.sp,
+                fontWeight = FontWeight.ExtraBold,
+                maxLines = 1,
+                softWrap = false
+            )
+
+            Spacer(modifier = Modifier.height(4.dp))
+
+            DeltaPriceBadge(delta = item.delta, isCompact = true)
+        }
+    }
+}
+
 @Composable
 fun FullTankCalculatorCard(
     presets: List<VehiclePreset>,
@@ -712,15 +893,12 @@ fun FullTankCalculatorCard(
     val lang = LocalAppLanguage.current
     val haptic = LocalHapticFeedback.current
     val selectedVehicle = presets.getOrElse(selectedIdx) { presets.first() }
-    // 0: Tính theo bình xe, 1: Tính theo số tiền (Đổ 50k/100k được mấy lít?)
     var calcMode by remember { mutableIntStateOf(0) }
     var selectedMoney by remember { mutableIntStateOf(50_000) }
 
     val unitPrice = fuelItem.getPrice(zone).coerceAtLeast(1)
     val prevUnitPrice = (unitPrice - fuelItem.delta).coerceAtLeast(1)
-    val fuelDisplayName = translateFuelName(fuelItem.name, lang)
 
-    // Đồng hồ nhảy số mượt khi đổi xe, đổi lít hoặc đổi loại xăng
     val animatedFullTankCost by animateIntAsState(
         targetValue = fullTankCost,
         animationSpec = tween(durationMillis = 380, easing = FastOutSlowInEasing),
@@ -745,7 +923,7 @@ fun FullTankCalculatorCard(
                 .padding(14.dp),
             verticalArrangement = Arrangement.spacedBy(10.dp)
         ) {
-            // 1. Tiêu đề + Chuyển chế độ [ 🛵 Đầy bình | 💵 Đổ theo tiền ]
+            // 1. Tiêu đề gọn + Nút chuyển chế độ [ Đầy bình | Theo tiền ] (Đã bỏ dòng mô tả rườm rà)
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.SpaceBetween,
@@ -753,50 +931,30 @@ fun FullTankCalculatorCard(
             ) {
                 Row(
                     verticalAlignment = Alignment.CenterVertically,
-                    modifier = Modifier.weight(1f, fill = false)
+                    modifier = Modifier.weight(1f)
                 ) {
-                    Surface(
-                        color = EnergyAmber.copy(alpha = 0.18f),
-                        shape = RoundedCornerShape(8.dp)
-                    ) {
-                        Text(
-                            text = if (calcMode == 0) "🛵" else "💵",
-                            fontSize = 15.sp,
-                            modifier = Modifier.padding(horizontal = 6.dp, vertical = 4.dp)
-                        )
-                    }
-                    Spacer(modifier = Modifier.width(8.dp))
-                    Column {
-                        Text(
-                            text = if (calcMode == 0)
-                                tr("Đổ Đầy Bình Hết Bao Nhiêu?", "Full Tank Cost Calculator")
-                            else
-                                tr("Đổ Theo Tiền Được Mấy Lít?", "Liters by Money Calculator"),
-                            color = TextPrimaryDark,
-                            fontSize = 14.sp,
-                            fontWeight = FontWeight.Bold,
-                            maxLines = 1,
-                            overflow = TextOverflow.Ellipsis
-                        )
-                        Text(
-                            text = if (calcMode == 0)
-                                tr("Chọn xe & loại xăng để tính nhanh", "Select vehicle & fuel type")
-                            else
-                                tr("Đối chiếu số lít trên đồng hồ cột bơm", "Check exact liters on pump meter"),
-                            color = TextSecondaryDark,
-                            fontSize = 10.5.sp,
-                            maxLines = 1,
-                            overflow = TextOverflow.Ellipsis
-                        )
-                    }
+                    Text(
+                        text = if (calcMode == 0) "🛵" else "💵",
+                        fontSize = 16.sp
+                    )
+                    Spacer(modifier = Modifier.width(7.dp))
+                    Text(
+                        text = if (calcMode == 0)
+                            tr("Tính Tiền Đổ Đầy Bình", "Full Tank Calculator")
+                        else
+                            tr("Đổ Theo Tiền Được Mấy Lít?", "Liters by Money"),
+                        color = TextPrimaryDark,
+                        fontSize = 14.5.sp,
+                        fontWeight = FontWeight.ExtraBold,
+                        maxLines = 1,
+                        softWrap = false,
+                        overflow = TextOverflow.Ellipsis
+                    )
                 }
 
-                Spacer(modifier = Modifier.width(6.dp))
-
-                // Switcher: [Đầy bình | Theo tiền]
                 Surface(
                     color = DarkBackground,
-                    shape = RoundedCornerShape(14.dp),
+                    shape = RoundedCornerShape(12.dp),
                     border = androidx.compose.foundation.BorderStroke(1.dp, DarkSurfaceVariant)
                 ) {
                     Row(modifier = Modifier.padding(2.dp)) {
@@ -807,7 +965,7 @@ fun FullTankCalculatorCard(
                             val active = calcMode == mode
                             Surface(
                                 color = if (active) EnergyAmber else Color.Transparent,
-                                shape = RoundedCornerShape(12.dp),
+                                shape = RoundedCornerShape(10.dp),
                                 modifier = Modifier.clickable {
                                     if (calcMode != mode) {
                                         haptic.performHapticFeedback(HapticFeedbackType.TextHandleMove)
@@ -830,15 +988,268 @@ fun FullTankCalculatorCard(
                 }
             }
 
-            // 2. Chọn nhanh loại nhiên liệu: [ RON 95-III | E5 RON 92 | Dầu DO ]
+            Crossfade(
+                targetState = calcMode,
+                animationSpec = tween(durationMillis = 220),
+                label = "calc_mode_crossfade"
+            ) { currentMode ->
+                Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
+                    if (currentMode == 0) {
+                        // Hàng chọn nhanh dòng xe (Gọn gàng: 🛵 Vision, 🛵 AirBlade, 🛵 Wave...)
+                        Row(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .horizontalScroll(rememberScrollState()),
+                            horizontalArrangement = Arrangement.spacedBy(7.dp)
+                        ) {
+                            presets.forEachIndexed { idx, preset ->
+                                val isSelected = idx == selectedIdx
+                                val vName = if (lang == AppLang.EN) preset.nameEn else preset.nameVi
+                                Surface(
+                                    color = if (isSelected) EnergyAmber.copy(alpha = 0.18f) else DarkBackground,
+                                    shape = RoundedCornerShape(12.dp),
+                                    border = androidx.compose.foundation.BorderStroke(
+                                        1.dp,
+                                        if (isSelected) EnergyAmber else DarkSurfaceVariant
+                                    ),
+                                    modifier = Modifier.clickable { onSelectVehicle(idx) }
+                                ) {
+                                    Row(
+                                        modifier = Modifier.padding(horizontal = 10.dp, vertical = 6.dp),
+                                        verticalAlignment = Alignment.CenterVertically
+                                    ) {
+                                        Text(text = preset.emoji, fontSize = 13.sp)
+                                        Spacer(modifier = Modifier.width(5.dp))
+                                        Text(
+                                            text = vName,
+                                            color = if (isSelected) EnergyAmber else TextSecondaryDark,
+                                            fontSize = 12.sp,
+                                            fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Medium,
+                                            maxLines = 1,
+                                            softWrap = false
+                                        )
+                                    }
+                                }
+                            }
+                        }
+
+                        // Hộp Kết Quả Nổi Bật: Bên trái Giá Tiền To, Bên phải Bộ Chỉnh Lít [- 4.9L +]
+                        Surface(
+                            color = DarkBackground,
+                            shape = RoundedCornerShape(14.dp),
+                            border = androidx.compose.foundation.BorderStroke(1.dp, EnergyAmber.copy(alpha = 0.28f)),
+                            modifier = Modifier.fillMaxWidth()
+                        ) {
+                            Row(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .padding(horizontal = 14.dp, vertical = 12.dp),
+                                horizontalArrangement = Arrangement.SpaceBetween,
+                                verticalAlignment = Alignment.CenterVertically
+                            ) {
+                                Column(modifier = Modifier.weight(1f)) {
+                                    Text(
+                                        text = "${currencyFormat.format(animatedFullTankCost)} đ",
+                                        color = EnergyAmber,
+                                        fontSize = 27.sp,
+                                        fontWeight = FontWeight.Black,
+                                        maxLines = 1,
+                                        softWrap = false
+                                    )
+                                    Spacer(modifier = Modifier.height(2.dp))
+                                    val deltaColor = when {
+                                        fullTankDelta < 0 -> PriceGreen
+                                        fullTankDelta > 0 -> PriceRed
+                                        else -> TextSecondaryDark
+                                    }
+                                    val deltaLabel = when {
+                                        fullTankDelta < 0 -> tr(
+                                            "▼ Rẻ hơn ${currencyFormat.format(abs(animatedFullTankDelta))}đ/bình",
+                                            "▼ Save ${currencyFormat.format(abs(animatedFullTankDelta))} VND/tank"
+                                        )
+                                        fullTankDelta > 0 -> tr(
+                                            "▲ +${currencyFormat.format(animatedFullTankDelta)}đ/bình kỳ này",
+                                            "▲ +${currencyFormat.format(animatedFullTankDelta)} VND/tank"
+                                        )
+                                        else -> tr("Không đổi kỳ này", "Unchanged")
+                                    }
+                                    Text(
+                                        text = deltaLabel,
+                                        color = deltaColor,
+                                        fontSize = 11.5.sp,
+                                        fontWeight = FontWeight.Bold,
+                                        maxLines = 1,
+                                        softWrap = false
+                                    )
+                                }
+
+                                // Bộ nút [- | 4.9 L | +] đặt ngang ngay cạnh số tiền
+                                val step = if (customLiters >= 20.0) 5.0 else 0.5
+                                val litersStr = String.format(Locale.US, "%.1f", customLiters).replace(".0", "")
+                                Row(
+                                    verticalAlignment = Alignment.CenterVertically,
+                                    horizontalArrangement = Arrangement.spacedBy(6.dp)
+                                ) {
+                                    Surface(
+                                        color = DarkSurface,
+                                        shape = RoundedCornerShape(10.dp),
+                                        border = androidx.compose.foundation.BorderStroke(1.dp, DarkSurfaceVariant),
+                                        modifier = Modifier.clickable { onChangeLiters(customLiters - step) }
+                                    ) {
+                                        Text(
+                                            text = "−",
+                                            color = TextPrimaryDark,
+                                            fontSize = 15.sp,
+                                            fontWeight = FontWeight.ExtraBold,
+                                            modifier = Modifier.padding(horizontal = 10.dp, vertical = 4.dp)
+                                        )
+                                    }
+                                    Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                                        Text(
+                                            text = "${litersStr}L",
+                                            color = TextPrimaryDark,
+                                            fontSize = 13.5.sp,
+                                            fontWeight = FontWeight.ExtraBold,
+                                            maxLines = 1,
+                                            softWrap = false
+                                        )
+                                        Text(
+                                            text = tr("Dung tích", "Tank"),
+                                            color = TextSecondaryDark,
+                                            fontSize = 9.5.sp,
+                                            maxLines = 1,
+                                            softWrap = false
+                                        )
+                                    }
+                                    Surface(
+                                        color = DarkSurface,
+                                        shape = RoundedCornerShape(10.dp),
+                                        border = androidx.compose.foundation.BorderStroke(1.dp, DarkSurfaceVariant),
+                                        modifier = Modifier.clickable { onChangeLiters(customLiters + step) }
+                                    ) {
+                                        Text(
+                                            text = "+",
+                                            color = TextPrimaryDark,
+                                            fontSize = 15.sp,
+                                            fontWeight = FontWeight.ExtraBold,
+                                            modifier = Modifier.padding(horizontal = 10.dp, vertical = 4.dp)
+                                        )
+                                    }
+                                }
+                            }
+                        }
+                    } else {
+                        // CHẾ ĐỘ 2: ĐỔ THEO TIỀN MẶT (30k, 50k, 70k, 100k, 200k, 500k, 1M)
+                        Row(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .horizontalScroll(rememberScrollState()),
+                            horizontalArrangement = Arrangement.spacedBy(7.dp)
+                        ) {
+                            MONEY_PRESETS.forEach { amount ->
+                                val isSelected = selectedMoney == amount
+                                val label = if (amount >= 1_000_000) "1 Triệu" else "${amount / 1000}k"
+                                Surface(
+                                    color = if (isSelected) EnergyAmber.copy(alpha = 0.2f) else DarkBackground,
+                                    shape = RoundedCornerShape(12.dp),
+                                    border = androidx.compose.foundation.BorderStroke(
+                                        1.dp,
+                                        if (isSelected) EnergyAmber else DarkSurfaceVariant
+                                    ),
+                                    modifier = Modifier.clickable {
+                                        haptic.performHapticFeedback(HapticFeedbackType.TextHandleMove)
+                                        selectedMoney = amount
+                                    }
+                                ) {
+                                    Text(
+                                        text = "💵 $label",
+                                        color = if (isSelected) EnergyAmber else TextSecondaryDark,
+                                        fontSize = 12.sp,
+                                        fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Medium,
+                                        maxLines = 1,
+                                        softWrap = false,
+                                        modifier = Modifier.padding(horizontal = 12.dp, vertical = 6.dp)
+                                    )
+                                }
+                            }
+                        }
+
+                        val targetLitersNow = (selectedMoney.toDouble() / unitPrice).toFloat()
+                        val animatedLitersNow by animateFloatAsState(
+                            targetValue = targetLitersNow,
+                            animationSpec = tween(durationMillis = 360, easing = FastOutSlowInEasing),
+                            label = "liters_by_money_counter"
+                        )
+                        val litersPrev = selectedMoney.toDouble() / prevUnitPrice
+                        val litersDiff = targetLitersNow.toDouble() - litersPrev
+                        val litersFormatted = String.format(if (lang == AppLang.EN) Locale.US else Locale.GERMANY, "%.2f", animatedLitersNow)
+                        val diffFormatted = String.format(if (lang == AppLang.EN) Locale.US else Locale.GERMANY, "%.2f", abs(litersDiff))
+
+                        Surface(
+                            color = DarkBackground,
+                            shape = RoundedCornerShape(14.dp),
+                            border = androidx.compose.foundation.BorderStroke(1.dp, PetrolTeal.copy(alpha = 0.35f)),
+                            modifier = Modifier.fillMaxWidth()
+                        ) {
+                            Row(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .padding(horizontal = 14.dp, vertical = 12.dp),
+                                horizontalArrangement = Arrangement.SpaceBetween,
+                                verticalAlignment = Alignment.CenterVertically
+                            ) {
+                                Column {
+                                    Text(
+                                        text = "⛽ $litersFormatted ${tr("Lít", "Liters")}",
+                                        color = PetrolTeal,
+                                        fontSize = 26.sp,
+                                        fontWeight = FontWeight.Black,
+                                        maxLines = 1,
+                                        softWrap = false
+                                    )
+                                    Spacer(modifier = Modifier.height(2.dp))
+                                    val diffText = when {
+                                        litersDiff < -0.005 -> tr("▼ Ít hơn kỳ trước $diffFormatted lít", "▼ -$diffFormatted L vs last period")
+                                        litersDiff > 0.005 -> tr("▲ Nhiều hơn +$diffFormatted lít", "▲ +$diffFormatted L vs last period")
+                                        else -> tr("Bằng kỳ trước", "Unchanged")
+                                    }
+                                    Text(
+                                        text = diffText,
+                                        color = if (litersDiff < 0) PriceRed else if (litersDiff > 0) PriceGreen else TextSecondaryDark,
+                                        fontSize = 11.5.sp,
+                                        fontWeight = FontWeight.Bold
+                                    )
+                                }
+
+                                Surface(
+                                    color = DarkSurface,
+                                    shape = RoundedCornerShape(10.dp),
+                                    border = androidx.compose.foundation.BorderStroke(1.dp, DarkSurfaceVariant)
+                                ) {
+                                    Text(
+                                        text = "${currencyFormat.format(selectedMoney)}đ",
+                                        color = TextPrimaryDark,
+                                        fontSize = 13.sp,
+                                        fontWeight = FontWeight.Bold,
+                                        modifier = Modifier.padding(horizontal = 10.dp, vertical = 6.dp)
+                                    )
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+
+            // 3. Hàng đáy gọn: Chọn nhanh loại xăng [RON 95 | E5 92 | Dầu DO]
             Row(
                 modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.spacedBy(6.dp)
+                horizontalArrangement = Arrangement.spacedBy(6.dp),
+                verticalAlignment = Alignment.CenterVertically
             ) {
                 listOf(
-                    Triple("95", "RON 95-III", Color(0xFFF97316)),
+                    Triple("95", "RON 95", Color(0xFFF97316)),
                     Triple("e5", "E5 RON 92", Color(0xFF10B981)),
-                    Triple("do", tr("Dầu DO", "Diesel DO"), Color(0xFF0EA5E9))
+                    Triple("do", tr("Dầu DO", "Diesel"), Color(0xFF0EA5E9))
                 ).forEach { (kw, label, nozzleColor) ->
                     val isSelected = selectedFuelKeyword == kw
                     Surface(
@@ -876,294 +1287,6 @@ fun FullTankCalculatorCard(
                     }
                 }
             }
-
-            // Chuyển đổi mượt mà giữa chế độ Đầy bình & Theo tiền
-            Crossfade(
-                targetState = calcMode,
-                animationSpec = tween(durationMillis = 220),
-                label = "calc_mode_crossfade"
-            ) { currentMode ->
-                Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
-                    if (currentMode == 0) {
-                        // CHẾ ĐỘ 1: CHỌN DÒNG XE & DUNG TÍCH BÌNH
-                        Row(
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .horizontalScroll(rememberScrollState()),
-                            horizontalArrangement = Arrangement.spacedBy(8.dp)
-                        ) {
-                            presets.forEachIndexed { idx, preset ->
-                                val isSelected = idx == selectedIdx
-                                val vName = if (lang == AppLang.EN) preset.nameEn else preset.nameVi
-                                Surface(
-                                    color = if (isSelected) EnergyAmber.copy(alpha = 0.18f) else DarkBackground,
-                                    shape = RoundedCornerShape(12.dp),
-                                    border = androidx.compose.foundation.BorderStroke(
-                                        1.dp,
-                                        if (isSelected) EnergyAmber else DarkSurfaceVariant
-                                    ),
-                                    modifier = Modifier.clickable { onSelectVehicle(idx) }
-                                ) {
-                                    Row(
-                                        modifier = Modifier.padding(horizontal = 10.dp, vertical = 7.dp),
-                                        verticalAlignment = Alignment.CenterVertically
-                                    ) {
-                                        Text(text = preset.emoji, fontSize = 13.sp)
-                                        Spacer(modifier = Modifier.width(5.dp))
-                                        Text(
-                                            text = "$vName (${preset.tankLiters}L)",
-                                            color = if (isSelected) EnergyAmber else TextSecondaryDark,
-                                            fontSize = 11.5.sp,
-                                            fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Medium,
-                                            maxLines = 1,
-                                            softWrap = false
-                                        )
-                                    }
-                                }
-                            }
-                        }
-
-                        // Khung kết quả Đổ đầy bình + Nút tăng giảm [-0.5L | +0.5L] + Nút Gửi ảnh
-                        Surface(
-                            color = DarkBackground,
-                            shape = RoundedCornerShape(14.dp),
-                            border = androidx.compose.foundation.BorderStroke(1.dp, DarkSurfaceVariant.copy(alpha = 0.7f)),
-                            modifier = Modifier.fillMaxWidth()
-                        ) {
-                            Column(modifier = Modifier.padding(horizontal = 14.dp, vertical = 12.dp)) {
-                                Row(
-                                    modifier = Modifier.fillMaxWidth(),
-                                    horizontalArrangement = Arrangement.SpaceBetween,
-                                    verticalAlignment = Alignment.CenterVertically
-                                ) {
-                                    Column(modifier = Modifier.weight(1f)) {
-                                        val vName = if (lang == AppLang.EN) selectedVehicle.nameEn else selectedVehicle.nameVi
-                                        val litersStr = String.format(Locale.US, "%.1f", customLiters).replace(".0", "")
-                                        Text(
-                                            text = "${selectedVehicle.emoji} $vName • ${litersStr}L ($fuelDisplayName)",
-                                            color = TextSecondaryDark,
-                                            fontSize = 11.sp,
-                                            maxLines = 1,
-                                            overflow = TextOverflow.Ellipsis
-                                        )
-                                        Spacer(modifier = Modifier.height(3.dp))
-                                        Text(
-                                            text = "${currencyFormat.format(animatedFullTankCost)} đ",
-                                            color = TextPrimaryDark,
-                                            fontSize = 24.sp,
-                                            fontWeight = FontWeight.ExtraBold,
-                                            maxLines = 1,
-                                            softWrap = false
-                                        )
-                                        Spacer(modifier = Modifier.height(3.dp))
-                                        val deltaColor = when {
-                                            fullTankDelta < 0 -> PriceGreen
-                                            fullTankDelta > 0 -> PriceRed
-                                            else -> TextSecondaryDark
-                                        }
-                                        val deltaLabel = when {
-                                            fullTankDelta < 0 -> tr(
-                                                "▼ Đỡ tốn ${currencyFormat.format(abs(animatedFullTankDelta))} đ/bình so với kỳ trước",
-                                                "▼ Save ${currencyFormat.format(abs(animatedFullTankDelta))} VND/tank vs last period"
-                                            )
-                                            fullTankDelta > 0 -> tr(
-                                                "▲ Đắt thêm +${currencyFormat.format(animatedFullTankDelta)} đ/bình so với kỳ trước",
-                                                "▲ +${currencyFormat.format(animatedFullTankDelta)} VND/tank vs last period"
-                                            )
-                                            else -> tr("Không đổi so với kỳ trước", "Unchanged vs last period")
-                                        }
-                                        Text(
-                                            text = deltaLabel,
-                                            color = deltaColor,
-                                            fontSize = 11.sp,
-                                            fontWeight = FontWeight.SemiBold,
-                                            maxLines = 1,
-                                            overflow = TextOverflow.Ellipsis
-                                        )
-                                    }
-
-                                    Spacer(modifier = Modifier.width(8.dp))
-
-                                    // Nút Xem trước & Gửi ảnh qua Zalo / FB
-                                    Surface(
-                                        color = PetrolTeal,
-                                        shape = RoundedCornerShape(12.dp),
-                                        modifier = Modifier.clickable { onShareClick() }
-                                    ) {
-                                        Column(
-                                            modifier = Modifier.padding(horizontal = 12.dp, vertical = 9.dp),
-                                            horizontalAlignment = Alignment.CenterHorizontally
-                                        ) {
-                                            Text(text = "📸", fontSize = 15.sp)
-                                            Text(
-                                                text = tr("Gửi ảnh", "Share"),
-                                                color = Color.Black,
-                                                fontSize = 11.sp,
-                                                fontWeight = FontWeight.Bold,
-                                                maxLines = 1,
-                                                softWrap = false
-                                            )
-                                        }
-                                    }
-                                }
-
-                                Spacer(modifier = Modifier.height(8.dp))
-
-                                // Thanh tinh chỉnh số lít thực tế [- 0.5L] [Dung tích] [+ 0.5L]
-                                Row(
-                                    modifier = Modifier.fillMaxWidth(),
-                                    horizontalArrangement = Arrangement.SpaceBetween,
-                                    verticalAlignment = Alignment.CenterVertically
-                                ) {
-                                    Text(
-                                        text = tr("Chỉnh số lít đổ thực tế:", "Adjust actual liters:"),
-                                        color = TextSecondaryDark,
-                                        fontSize = 11.sp
-                                    )
-                                    Row(
-                                        verticalAlignment = Alignment.CenterVertically,
-                                        horizontalArrangement = Arrangement.spacedBy(6.dp)
-                                    ) {
-                                        val step = if (customLiters >= 20.0) 5.0 else 0.5
-                                        val stepLabel = if (step >= 1.0) "${step.toInt()}L" else "0.5L"
-                                        Surface(
-                                            color = DarkSurface,
-                                            shape = RoundedCornerShape(8.dp),
-                                            border = androidx.compose.foundation.BorderStroke(1.dp, DarkSurfaceVariant),
-                                            modifier = Modifier.clickable { onChangeLiters(customLiters - step) }
-                                        ) {
-                                            Text(
-                                                text = "− $stepLabel",
-                                                color = TextPrimaryDark,
-                                                fontSize = 11.sp,
-                                                fontWeight = FontWeight.Bold,
-                                                modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp)
-                                            )
-                                        }
-                                        Text(
-                                            text = "${String.format(Locale.US, "%.1f", customLiters).replace(".0", "")}L",
-                                            color = EnergyAmber,
-                                            fontSize = 12.sp,
-                                            fontWeight = FontWeight.Bold
-                                        )
-                                        Surface(
-                                            color = DarkSurface,
-                                            shape = RoundedCornerShape(8.dp),
-                                            border = androidx.compose.foundation.BorderStroke(1.dp, DarkSurfaceVariant),
-                                            modifier = Modifier.clickable { onChangeLiters(customLiters + step) }
-                                        ) {
-                                            Text(
-                                                text = "+ $stepLabel",
-                                                color = TextPrimaryDark,
-                                                fontSize = 11.sp,
-                                                fontWeight = FontWeight.Bold,
-                                                modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp)
-                                            )
-                                        }
-                                    }
-                                }
-                            }
-                        }
-                    } else {
-                        // CHẾ ĐỘ 2: ĐỔ THEO SỐ TIỀN (30k, 50k, 70k, 100k, 200k, 500k, 1M) -> RA SỐ LÍT CỘT BƠM
-                        Row(
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .horizontalScroll(rememberScrollState()),
-                            horizontalArrangement = Arrangement.spacedBy(8.dp)
-                        ) {
-                            MONEY_PRESETS.forEach { amount ->
-                                val isSelected = selectedMoney == amount
-                                val label = if (amount >= 1_000_000) "1 Triệu" else "${amount / 1000}k"
-                                Surface(
-                                    color = if (isSelected) EnergyAmber.copy(alpha = 0.2f) else DarkBackground,
-                                    shape = RoundedCornerShape(12.dp),
-                                    border = androidx.compose.foundation.BorderStroke(
-                                        1.dp,
-                                        if (isSelected) EnergyAmber else DarkSurfaceVariant
-                                    ),
-                                    modifier = Modifier.clickable {
-                                        haptic.performHapticFeedback(HapticFeedbackType.TextHandleMove)
-                                        selectedMoney = amount
-                                    }
-                                ) {
-                                    Text(
-                                        text = "💵 $label",
-                                        color = if (isSelected) EnergyAmber else TextSecondaryDark,
-                                        fontSize = 12.sp,
-                                        fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Medium,
-                                        maxLines = 1,
-                                        softWrap = false,
-                                        modifier = Modifier.padding(horizontal = 12.dp, vertical = 7.dp)
-                                    )
-                                }
-                            }
-                        }
-
-                        val targetLitersNow = (selectedMoney.toDouble() / unitPrice).toFloat()
-                        val animatedLitersNow by animateFloatAsState(
-                            targetValue = targetLitersNow,
-                            animationSpec = tween(durationMillis = 360, easing = FastOutSlowInEasing),
-                            label = "liters_by_money_counter"
-                        )
-                        val litersPrev = selectedMoney.toDouble() / prevUnitPrice
-                        val litersDiff = targetLitersNow.toDouble() - litersPrev
-                        val litersFormatted = String.format(if (lang == AppLang.EN) Locale.US else Locale.GERMANY, "%.2f", animatedLitersNow)
-                        val diffFormatted = String.format(if (lang == AppLang.EN) Locale.US else Locale.GERMANY, "%.2f", abs(litersDiff))
-
-                        Surface(
-                            color = DarkBackground,
-                            shape = RoundedCornerShape(14.dp),
-                            border = androidx.compose.foundation.BorderStroke(1.dp, DarkSurfaceVariant.copy(alpha = 0.7f)),
-                            modifier = Modifier.fillMaxWidth()
-                        ) {
-                            Row(
-                                modifier = Modifier
-                                    .fillMaxWidth()
-                                    .padding(horizontal = 14.dp, vertical = 12.dp),
-                                horizontalArrangement = Arrangement.SpaceBetween,
-                                verticalAlignment = Alignment.CenterVertically
-                            ) {
-                                Column(modifier = Modifier.weight(1f)) {
-                                    Text(
-                                        text = tr(
-                                            "Đổ ${currencyFormat.format(selectedMoney)} đ ($fuelDisplayName)",
-                                            "Refuel ${currencyFormat.format(selectedMoney)} VND ($fuelDisplayName)"
-                                        ),
-                                        color = TextSecondaryDark,
-                                        fontSize = 11.sp
-                                    )
-                                    Spacer(modifier = Modifier.height(3.dp))
-                                    Text(
-                                        text = "⛽ $litersFormatted ${tr("lít", "liters")}",
-                                        color = PetrolTeal,
-                                        fontSize = 24.sp,
-                                        fontWeight = FontWeight.ExtraBold
-                                    )
-                                    Spacer(modifier = Modifier.height(3.dp))
-                                    val diffText = when {
-                                        litersDiff < -0.005 -> tr(
-                                            "▼ Ít hơn kỳ trước $diffFormatted lít (do giá tăng)",
-                                            "▼ $diffFormatted L less than last period"
-                                        )
-                                        litersDiff > 0.005 -> tr(
-                                            "▲ Được nhiều hơn kỳ trước +$diffFormatted lít",
-                                            "▲ +$diffFormatted L more than last period"
-                                        )
-                                        else -> tr("Số lít bằng kỳ trước", "Same volume as last period")
-                                    }
-                                    Text(
-                                        text = diffText,
-                                        color = if (litersDiff < 0) PriceRed else if (litersDiff > 0) PriceGreen else TextSecondaryDark,
-                                        fontSize = 11.sp,
-                                        fontWeight = FontWeight.SemiBold
-                                    )
-                                }
-                            }
-                        }
-                    }
-                }
-            }
         }
     }
 }
@@ -1191,167 +1314,27 @@ private fun getNextAdjustmentCountdownText(lang: AppLang): String {
         val m = (target.get(Calendar.MONTH) + 1).toString().padStart(2, '0')
 
         if (days == 0 && hours <= 6) {
-            if (lang == AppLang.EN) "🔥 Next: Today 15:00" else "🔥 Kỳ mới: 15:00 hôm nay"
-        } else if (days == 0) {
-            if (lang == AppLang.EN) "⏳ Next: ${hours}h left" else "⏳ Kỳ tới: còn ${hours}h"
+            if (lang == AppLang.EN) "Next: Today 15:00" else "Kỳ tới: 15h hôm nay"
         } else {
-            if (lang == AppLang.EN) "⏳ Next ($d/$m): ${days}d ${hours}h" else "⏳ Kỳ tới ($d/$m): ${days}ng ${hours}h"
+            if (lang == AppLang.EN) "Next: Thu ($d/$m)" else "Kỳ tới: Thứ 5 ($d/$m)"
         }
     } catch (_: Exception) {
-        if (lang == AppLang.EN) "⏳ Every Thu 15:00" else "⏳ Đổi giá: 15:00 Thứ 5"
+        if (lang == AppLang.EN) "Every Thu 15:00" else "Kỳ tới: 15h Thứ 5"
     }
 }
 
-@Composable
-fun FuelBentoCard(
-    item: FuelItem,
-    zone: Int,
-    currencyFormat: NumberFormat,
-    modifier: Modifier = Modifier
-) {
-    val lang = LocalAppLanguage.current
-    val accent = getFuelNozzleAccentColor(item)
-    val animatedPrice by animateIntAsState(
-        targetValue = item.getPrice(zone),
-        animationSpec = tween(durationMillis = 400, easing = FastOutSlowInEasing),
-        label = "bento_price_counter"
-    )
-
-    Card(
-        modifier = modifier.clip(RoundedCornerShape(16.dp)),
-        colors = CardDefaults.cardColors(containerColor = DarkSurface),
-        border = androidx.compose.foundation.BorderStroke(
-            1.dp,
-            Brush.linearGradient(
-                listOf(accent.copy(alpha = 0.40f), DarkSurfaceVariant.copy(alpha = 0.45f))
-            )
-        )
-    ) {
-        Column(
-            modifier = Modifier
-                .fillMaxWidth()
-                .background(
-                    Brush.linearGradient(
-                        listOf(accent.copy(alpha = 0.07f), Color.Transparent)
-                    )
-                )
-                .padding(horizontal = 13.dp, vertical = 12.dp)
-        ) {
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                Box(
-                    modifier = Modifier
-                        .size(7.dp)
-                        .clip(CircleShape)
-                        .background(accent)
-                )
-                Spacer(modifier = Modifier.width(6.dp))
-                Text(
-                    text = translateFuelName(item.name, lang, compact = true),
-                    color = TextSecondaryDark,
-                    fontSize = 12.5.sp,
-                    fontWeight = FontWeight.SemiBold,
-                    maxLines = 1,
-                    softWrap = false,
-                    overflow = TextOverflow.Ellipsis
-                )
-            }
-
-            Spacer(modifier = Modifier.height(6.dp))
-
-            Text(
-                text = "${currencyFormat.format(animatedPrice)} đ",
-                color = TextPrimaryDark,
-                fontSize = 19.sp,
-                fontWeight = FontWeight.ExtraBold,
-                maxLines = 1,
-                softWrap = false
-            )
-
-            Spacer(modifier = Modifier.height(6.dp))
-
-            DeltaPriceBadge(delta = item.delta, isCompact = true)
-        }
+private fun formatShortDayMonth(raw: String): String {
+    val iso = Regex("""^(\d{4})-(\d{2})-(\d{2})""").find(raw)
+    if (iso != null) {
+        val (_, mo, d) = iso.destructured
+        return "$d/$mo"
     }
-}
-
-@Composable
-fun FuelWideCard(
-    item: FuelItem,
-    zone: Int,
-    currencyFormat: NumberFormat,
-    modifier: Modifier = Modifier
-) {
-    val lang = LocalAppLanguage.current
-    val accent = getFuelNozzleAccentColor(item)
-    val animatedPrice by animateIntAsState(
-        targetValue = item.getPrice(zone),
-        animationSpec = tween(durationMillis = 400, easing = FastOutSlowInEasing),
-        label = "wide_price_counter"
-    )
-
-    Card(
-        modifier = modifier.clip(RoundedCornerShape(16.dp)),
-        colors = CardDefaults.cardColors(containerColor = DarkSurface),
-        border = androidx.compose.foundation.BorderStroke(
-            1.dp,
-            Brush.linearGradient(
-                listOf(accent.copy(alpha = 0.40f), DarkSurfaceVariant.copy(alpha = 0.45f))
-            )
-        )
-    ) {
-        Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .background(
-                    Brush.linearGradient(
-                        listOf(accent.copy(alpha = 0.07f), Color.Transparent)
-                    )
-                )
-                .padding(horizontal = 14.dp, vertical = 12.dp),
-            horizontalArrangement = Arrangement.SpaceBetween,
-            verticalAlignment = Alignment.CenterVertically
-        ) {
-            Row(
-                verticalAlignment = Alignment.CenterVertically,
-                modifier = Modifier.weight(1f)
-            ) {
-                Box(
-                    modifier = Modifier
-                        .size(7.dp)
-                        .clip(CircleShape)
-                        .background(accent)
-                )
-                Spacer(modifier = Modifier.width(7.dp))
-                Text(
-                    text = translateFuelName(item.name, lang, compact = true),
-                    color = TextSecondaryDark,
-                    fontSize = 13.sp,
-                    fontWeight = FontWeight.SemiBold,
-                    maxLines = 1,
-                    softWrap = false,
-                    overflow = TextOverflow.Ellipsis
-                )
-            }
-
-            Row(
-                verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.spacedBy(8.dp)
-            ) {
-                DeltaPriceBadge(delta = item.delta, isCompact = true)
-                Text(
-                    text = "${currencyFormat.format(animatedPrice)} đ",
-                    color = TextPrimaryDark,
-                    fontSize = 18.sp,
-                    fontWeight = FontWeight.ExtraBold,
-                    maxLines = 1,
-                    softWrap = false
-                )
-            }
-        }
+    val vn = Regex("""^(\d{2})/(\d{2})""").find(raw)
+    if (vn != null) {
+        val (d, mo) = vn.destructured
+        return "$d/$mo"
     }
+    return raw.take(5)
 }
 
 @Composable
