@@ -1,12 +1,12 @@
 {
-  "updated_at": "16/10/2026 11:05",
-  "updated_epoch": 1792123547,
-  "announcement_title": "Bảng giá xăng dầu ngày 16/10/2026",
+  "updated_at": "17/10/2026 10:56",
+  "updated_epoch": 1792209376,
+  "announcement_title": "Bảng giá xăng dầu ngày 17/10/2026",
   "source": "Kỳ điều hành Liên Bộ Công Thương - Tài chính (Petrolimex)",
   "items": [
     {
-      "id": "e10_ron_95_iii",
-      "name": "Xăng E10 RON 95-III",
+      "id": "ron_95_iii",
+      "name": "Xăng RON 95-III",
       "zone_1": 26670,
       "zone_2": 27200,
       "delta": -350,
