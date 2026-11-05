@@ -1,6 +1,6 @@
 {
-  "updated_at": "05/11/2026 13:07",
-  "updated_epoch": 1793858846,
+  "updated_at": "05/11/2026 23:23",
+  "updated_epoch": 1793895818,
   "is_stale": false,
   "usd_to_vnd_rate": 25701.376047,
   "total_countries": 170,
@@ -1255,18 +1255,6 @@
       "note": ""
     },
     {
-      "code": "LES",
-      "name": "Lesotho",
-      "flag": "🇱🇸",
-      "region": "Global",
-      "price_usd": 1.72,
-      "price_vnd": 44206,
-      "daily_income_usd": 3.2,
-      "affordability_percent": 53.75,
-      "is_current": false,
-      "note": ""
-    },
-    {
       "code": "ARU",
       "name": "Aruba",
       "flag": "🇦🇼",
@@ -1323,6 +1311,18 @@
       "price_vnd": 44977,
       "daily_income_usd": 18.0,
       "affordability_percent": 9.72,
+      "is_current": false,
+      "note": ""
+    },
+    {
+      "code": "LES",
+      "name": "Lesotho",
+      "flag": "🇱🇸",
+      "region": "Global",
+      "price_usd": 1.759,
+      "price_vnd": 45209,
+      "daily_income_usd": 3.2,
+      "affordability_percent": 54.97,
       "is_current": false,
       "note": ""
     },
