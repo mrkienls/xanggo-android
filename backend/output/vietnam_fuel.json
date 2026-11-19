@@ -1,15 +1,15 @@
 {
-  "updated_at": "18/11/2026 13:54",
-  "updated_epoch": 1794984897,
-  "announcement_title": "Bảng giá xăng dầu ngày 18/11/2026",
+  "updated_at": "19/11/2026 13:55",
+  "updated_epoch": 1795071324,
+  "announcement_title": "Bảng giá xăng dầu ngày 19/11/2026",
   "source": "Kỳ điều hành Liên Bộ Công Thương - Tài chính (Petrolimex)",
   "items": [
     {
       "id": "ron_95_iii",
       "name": "Xăng RON 95-III",
-      "zone_1": 26670,
-      "zone_2": 27200,
-      "delta": -350,
+      "zone_1": 19840,
+      "zone_2": 20240,
+      "delta": -1310,
       "unit": "VND/lít",
       "badge_color": "#F97316",
       "is_featured": true
@@ -17,9 +17,9 @@
     {
       "id": "e5_ron_92_ii",
       "name": "Xăng E5 RON 92-II",
-      "zone_1": 26620,
-      "zone_2": 27150,
-      "delta": -350,
+      "zone_1": 19390,
+      "zone_2": 19780,
+      "delta": -1500,
       "unit": "VND/lít",
       "badge_color": "#16A34A",
       "is_featured": false
@@ -27,9 +27,9 @@
     {
       "id": "do_005s_ii",
       "name": "Dầu DO 0.05S-II",
-      "zone_1": 28750,
-      "zone_2": 29320,
-      "delta": -350,
+      "zone_1": 26820,
+      "zone_2": 27360,
+      "delta": -1870,
       "unit": "VND/lít",
       "badge_color": "#475569",
       "is_featured": false
@@ -37,9 +37,9 @@
     {
       "id": "do_0001s_v",
       "name": "Dầu DO 0.001S-V",
-      "zone_1": 30200,
-      "zone_2": 30800,
-      "delta": 0,
+      "zone_1": 28620,
+      "zone_2": 29190,
+      "delta": -1470,
       "unit": "VND/lít",
       "badge_color": "#475569",
       "is_featured": false
@@ -101,6 +101,14 @@
       "e5_price": 26620,
       "diesel_price": 28750,
       "delta_ron95": -1580
+    },
+    {
+      "date": "19/11",
+      "full_date": "19/11/2026",
+      "ron95_price": 19840,
+      "e5_price": 19390,
+      "diesel_price": 26820,
+      "delta_ron95": -6830
     }
   ]
 }
