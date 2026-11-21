@@ -1,6 +1,6 @@
 {
-  "updated_at": "20/11/2026 13:46",
-  "updated_epoch": 1795157185,
+  "updated_at": "21/11/2026 13:40",
+  "updated_epoch": 1795243207,
   "is_stale": false,
   "usd_to_vnd_rate": 25729.721904,
   "total_countries": 170,
@@ -1015,18 +1015,6 @@
       "note": ""
     },
     {
-      "code": "TAN",
-      "name": "Tanzania",
-      "flag": "🇹🇿",
-      "region": "Global",
-      "price_usd": 1.531,
-      "price_vnd": 39392,
-      "daily_income_usd": 3.2,
-      "affordability_percent": 47.84,
-      "is_current": false,
-      "note": ""
-    },
-    {
       "code": "SWE",
       "name": "Thụy Điển",
       "flag": "🇸🇪",
@@ -1071,6 +1059,18 @@
       "price_vnd": 39650,
       "daily_income_usd": 10.0,
       "affordability_percent": 15.41,
+      "is_current": false,
+      "note": ""
+    },
+    {
+      "code": "TAN",
+      "name": "Tanzania",
+      "flag": "🇹🇿",
+      "region": "Global",
+      "price_usd": 1.541,
+      "price_vnd": 39650,
+      "daily_income_usd": 3.2,
+      "affordability_percent": 48.16,
       "is_current": false,
       "note": ""
     },
@@ -1239,6 +1239,18 @@
       "price_vnd": 42145,
       "daily_income_usd": 6.5,
       "affordability_percent": 25.2,
+      "is_current": false,
+      "note": ""
+    },
+    {
+      "code": "LAO",
+      "name": "Lào",
+      "flag": "🇱🇦",
+      "region": "ASEAN",
+      "price_usd": 1.658,
+      "price_vnd": 42660,
+      "daily_income_usd": 5.2,
+      "affordability_percent": 31.88,
       "is_current": false,
       "note": ""
     },
@@ -1431,18 +1443,6 @@
       "price_vnd": 45850,
       "daily_income_usd": 85.0,
       "affordability_percent": 2.1,
-      "is_current": false,
-      "note": ""
-    },
-    {
-      "code": "LAO",
-      "name": "Lào",
-      "flag": "🇱🇦",
-      "region": "ASEAN",
-      "price_usd": 1.785,
-      "price_vnd": 45928,
-      "daily_income_usd": 5.2,
-      "affordability_percent": 34.33,
       "is_current": false,
       "note": ""
     },
