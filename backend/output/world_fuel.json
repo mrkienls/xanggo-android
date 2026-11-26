@@ -1,6 +1,6 @@
 {
-  "updated_at": "25/11/2026 14:57",
-  "updated_epoch": 1795593476,
+  "updated_at": "26/11/2026 14:50",
+  "updated_epoch": 1795679404,
   "is_stale": false,
   "usd_to_vnd_rate": 25765.93616,
   "total_countries": 170,
@@ -191,10 +191,10 @@
       "name": "Kazakhstan",
       "flag": "🇰🇿",
       "region": "Global",
-      "price_usd": 0.701,
-      "price_vnd": 18062,
+      "price_usd": 0.705,
+      "price_vnd": 18165,
       "daily_income_usd": 30.0,
-      "affordability_percent": 2.34,
+      "affordability_percent": 2.35,
       "is_current": false,
       "note": ""
     },
@@ -209,6 +209,18 @@
       "affordability_percent": 5.78,
       "is_current": true,
       "note": "Kỳ điều hành hôm nay"
+    },
+    {
+      "code": "NIG",
+      "name": "Nigeria",
+      "flag": "🇳🇬",
+      "region": "Global",
+      "price_usd": 0.78,
+      "price_vnd": 20097,
+      "daily_income_usd": 5.0,
+      "affordability_percent": 15.6,
+      "is_current": false,
+      "note": ""
     },
     {
       "code": "ECU",
@@ -243,18 +255,6 @@
       "price_vnd": 21489,
       "daily_income_usd": 2.0,
       "affordability_percent": 41.7,
-      "is_current": false,
-      "note": ""
-    },
-    {
-      "code": "NIG",
-      "name": "Nigeria",
-      "flag": "🇳🇬",
-      "region": "Global",
-      "price_usd": 0.857,
-      "price_vnd": 22081,
-      "daily_income_usd": 5.0,
-      "affordability_percent": 17.14,
       "is_current": false,
       "note": ""
     },
@@ -415,6 +415,18 @@
       "note": ""
     },
     {
+      "code": "PUE",
+      "name": "Puerto Rico",
+      "flag": "🇵🇷",
+      "region": "Global",
+      "price_usd": 1.127,
+      "price_vnd": 29038,
+      "daily_income_usd": 95.0,
+      "affordability_percent": 1.19,
+      "is_current": false,
+      "note": ""
+    },
+    {
       "code": "BHU",
       "name": "Bhutan",
       "flag": "🇧🇹",
@@ -463,6 +475,18 @@
       "note": ""
     },
     {
+      "code": "PAK",
+      "name": "Pakistan",
+      "flag": "🇵🇰",
+      "region": "Global",
+      "price_usd": 1.152,
+      "price_vnd": 29682,
+      "daily_income_usd": 4.5,
+      "affordability_percent": 25.6,
+      "is_current": false,
+      "note": ""
+    },
+    {
       "code": "DR ",
       "name": "CHDC Congo",
       "flag": "🇨🇩",
@@ -471,18 +495,6 @@
       "price_vnd": 29940,
       "daily_income_usd": 2.0,
       "affordability_percent": 58.1,
-      "is_current": false,
-      "note": ""
-    },
-    {
-      "code": "PUE",
-      "name": "Puerto Rico",
-      "flag": "🇵🇷",
-      "region": "Global",
-      "price_usd": 1.168,
-      "price_vnd": 30095,
-      "daily_income_usd": 95.0,
-      "affordability_percent": 1.23,
       "is_current": false,
       "note": ""
     },
@@ -507,18 +519,6 @@
       "price_vnd": 30223,
       "daily_income_usd": 1.8,
       "affordability_percent": 65.17,
-      "is_current": false,
-      "note": ""
-    },
-    {
-      "code": "PAK",
-      "name": "Pakistan",
-      "flag": "🇵🇰",
-      "region": "Global",
-      "price_usd": 1.177,
-      "price_vnd": 30327,
-      "daily_income_usd": 4.5,
-      "affordability_percent": 26.16,
       "is_current": false,
       "note": ""
     },
@@ -595,6 +595,18 @@
       "note": ""
     },
     {
+      "code": "BUR",
+      "name": "Myanmar",
+      "flag": "🇲🇲",
+      "region": "ASEAN",
+      "price_usd": 1.236,
+      "price_vnd": 31847,
+      "daily_income_usd": 3.5,
+      "affordability_percent": 35.31,
+      "is_current": false,
+      "note": ""
+    },
+    {
       "code": "BEN",
       "name": "Benin",
       "flag": "🇧🇯",
@@ -635,10 +647,10 @@
       "name": "Kyrgyzstan",
       "flag": "🇰🇬",
       "region": "Global",
-      "price_usd": 1.303,
-      "price_vnd": 33573,
+      "price_usd": 1.304,
+      "price_vnd": 33599,
       "daily_income_usd": 5.0,
-      "affordability_percent": 26.06,
+      "affordability_percent": 26.08,
       "is_current": false,
       "note": ""
     },
@@ -675,6 +687,18 @@
       "price_vnd": 34114,
       "daily_income_usd": 7.0,
       "affordability_percent": 18.91,
+      "is_current": false,
+      "note": ""
+    },
+    {
+      "code": "HON",
+      "name": "Honduras",
+      "flag": "🇭🇳",
+      "region": "Global",
+      "price_usd": 1.327,
+      "price_vnd": 34191,
+      "daily_income_usd": 8.5,
+      "affordability_percent": 15.61,
       "is_current": false,
       "note": ""
     },
@@ -771,30 +795,6 @@
       "price_vnd": 35196,
       "daily_income_usd": 3.0,
       "affordability_percent": 45.53,
-      "is_current": false,
-      "note": ""
-    },
-    {
-      "code": "BUR",
-      "name": "Myanmar",
-      "flag": "🇲🇲",
-      "region": "ASEAN",
-      "price_usd": 1.37,
-      "price_vnd": 35299,
-      "daily_income_usd": 3.5,
-      "affordability_percent": 39.14,
-      "is_current": false,
-      "note": ""
-    },
-    {
-      "code": "HON",
-      "name": "Honduras",
-      "flag": "🇭🇳",
-      "region": "Global",
-      "price_usd": 1.38,
-      "price_vnd": 35557,
-      "daily_income_usd": 8.5,
-      "affordability_percent": 16.24,
       "is_current": false,
       "note": ""
     },
